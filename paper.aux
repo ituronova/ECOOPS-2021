@@ -1,0 +1,296 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\bibstyle{ACM-Reference-Format}
+\citation{regexwiki}
+\citation{rethinkingregexes}
+\providecommand \oddpage@label [2]{}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\newlabel{sec:intro@cref}{{[section][1][]1}{[1][1][]1}}
+\citation{cloudfareoutage}
+\citation{stackoutage}
+\citation{expressjsoutage}
+\citation{rethinkingregexes,redosimpact}
+\citation{spencermatching}
+\citation{sipser}
+\citation{thompsonmatching}
+\citation{re2}
+\citation{grep}
+\citation{VSXW19}
+\citation{BW98,Hovland09}
+\citation{cikm15}
+\citation{regexlib}
+\citation{snort}
+\citation{cikm15}
+\citation{aplas19}
+\citation{re2}
+\citation{grep}
+\citation{aplas19,Hovland09,KilTuh07,jha_extended,Sperberg-McQueen-ExtendedFAWeb,GGM12,cikm15}
+\citation{Antimirov96_partderivatives}
+\citation{Sperberg-McQueen-ExtendedFAWeb}
+\citation{GGM12,cikm15,Hovland09,KilTuh07,SEJ08,aplas19,KT03}
+\citation{grep}
+\citation{re2}
+\citation{VSXW19}
+\citation{dotnet}
+\citation{DavisMCSL19}
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:ak:nondet}{{1a}{4}{The CA for the regex \regex {\DOT *a\DOT \{$k$\}}\relax }{figure.caption.2}{}}
+\newlabel{fig:ak:nondet@cref}{{[subfigure][1][1]1a}{[1][4][]4}}
+\newlabel{sub@fig:ak:nondet}{{a}{4}{The CA for the regex \regex {\DOT *a\DOT \{$k$\}}\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:ak:nondet@cref}{{[subfigure][1][1]1a}{[1][4][]4}}
+\newlabel{fig:ak:det}{{1b}{4}{The CsA from determinization of (\subref {fig:ak:nondet})\relax }{figure.caption.2}{}}
+\newlabel{fig:ak:det@cref}{{[subfigure][2][1]1b}{[1][4][]4}}
+\newlabel{sub@fig:ak:det}{{b}{4}{The CsA from determinization of (\subref {fig:ak:nondet})\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:ak:det@cref}{{[subfigure][2][1]1b}{[1][4][]4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces  The nondeterministic CA and the deterministic CsA for {\ensuremath  {\texttt  {\texttt  {\makebox  [4pt]{{\huge  \texttt  {{.}}}}}*a\texttt  {\makebox  [4pt]{{\huge  \texttt  {{.}}}}}\{100\}}}}. The transitions are labeled by their \emph  {guard}, which gives the character class (in the standard POSIX regex notation, where, e.g.,\nonbreakingspace $\texttt  {\makebox  [4pt]{{\huge  \texttt  {{.}}}}}$ stands for ``any character'') and possibly restricts counter values, delimited by ``$/$'' from the counter \emph  {update}. If a counter does not have the update specified, then the transition does not change its value. In\nonbreakingspace (\subref  {fig:ak:det}), the notation $c+1$ stands for the set of values obtained by incrementing each value in $c$ and then \emph  {removing} values larger than the upper bound $100$ of the counter. The edges denoting initial states are labelled with \emph  {initial values} of the counters. Final states are labelled with an \emph  {acceptance condition}, e.g.\nonbreakingspace $\{c \geq 100\}$ in\nonbreakingspace (\subref  {fig:ak:nondet}).   The formal counter operations $\Op [c]$ presented later in \cref  {sec:CA} are in (\subref  {fig:ak:nondet}) shown as follows: the guard of $\Op [c]$ is shown in conjunction with the character guard $\alpha $ on the left of the ``/'', the update of $\Op [c]$ is shown on the right of ``$/$'' in the form of an assignment to $c$, where $\IncrOp [c]$ appears as the right value $c+1$, $\ExitOp $ as\nonbreakingspace $0$, $\ExitIncrOp $ as\nonbreakingspace $1$, and $\NoOp $ is omitted. \vspace  {-2mm} \relax }}{4}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:ak}{{1}{4}{The nondeterministic CA and the deterministic CsA for {\regex {\DOT *a\DOT \{100\}}}. The transitions are labeled by their \emph {guard}, which gives the character class (in the standard POSIX regex notation, where, e.g.,~$\DOT $ stands for ``any character'') and possibly restricts counter values, delimited by ``$/$'' from the counter \emph {update}. If a counter does not have the update specified, then the transition does not change its value. In~(\subref {fig:ak:det}), the notation $c+1$ stands for the set of values obtained by incrementing each value in $c$ and then \emph {removing} values larger than the upper bound $100$ of the counter. The edges denoting initial states are labelled with \emph {initial values} of the counters. Final states are labelled with an \emph {acceptance condition}, e.g.~$\{c \geq 100\}$ in~(\subref {fig:ak:nondet}). \\ The formal counter operations $\Op [c]$ presented later in \cref {sec:CA} are in (\subref {fig:ak:nondet}) shown as follows: the guard of $\Op [c]$ is shown in conjunction with the character guard $\alpha $ on the left of the ``/'', the update of $\Op [c]$ is shown on the right of ``$/$'' in the form of an assignment to $c$, where $\IncrOp [c]$ appears as the right value $c+1$, $\ExitOp $ as~$0$, $\ExitIncrOp $ as~$1$, and $\NoOp $ is omitted. \vspace {-2mm} \relax }{figure.caption.2}{}}
+\newlabel{fig:ak@cref}{{[figure][1][]1}{[1][4][]4}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Overview}{4}{section.2}\protected@file@percent }
+\newlabel{sec:overview}{{2}{4}{Overview}{section.2}{}}
+\newlabel{sec:overview@cref}{{[section][2][]2}{[1][4][]4}}
+\@writefile{toc}{\contentsline {paragraph}{Counting-Set Data Structure}{4}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{From a Nondeterministic CA to a Deterministic CsA}{5}{section*.5}\protected@file@percent }
+\citation{Antimirov96_partderivatives}
+\citation{VSXW19}
+\citation{Antimirov96_partderivatives}
+\citation{DV20}
+\@writefile{toc}{\contentsline {paragraph}{From Regexes to Nondeterministic CAs}{6}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Preliminaries}{6}{section.3}\protected@file@percent }
+\newlabel{sec:prelims}{{3}{6}{Preliminaries}{section.3}{}}
+\newlabel{sec:prelims@cref}{{[section][3][]3}{[1][6][]6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Effective Boolean Algebras}{7}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Words and Regexes}{7}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Minterms}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Symbolic Automata}{7}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Counting Automata}{8}{section.4}\protected@file@percent }
+\newlabel{sec:CA}{{4}{8}{Counting Automata}{section.4}{}}
+\newlabel{sec:CA@cref}{{[section][4][]4}{[1][8][]8}}
+\@writefile{toc}{\contentsline {paragraph}{Counter algebra}{8}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Counting automata.}{8}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Semantics of {\textrm  {CA}\xspace  }s.}{8}{figure.caption.10}\protected@file@percent }
+\citation{Antimirov96_partderivatives}
+\citation{Antimirov96_partderivatives}
+\citation{VSXW19}
+\@writefile{toc}{\contentsline {paragraph}{Deterministic and simple {\textrm  {CA}\xspace  }s.}{9}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}From a Regex to a CA via Conditional Partial Derivatives}{9}{section.5}\protected@file@percent }
+\newlabel{sec:regexes}{{5}{9}{From a Regex to a CA via Conditional Partial Derivatives}{section.5}{}}
+\newlabel{sec:regexes@cref}{{[section][5][]5}{[1][9][]9}}
+\citation{OOPSLA20TR}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Parametric Languages}{10}{subsection.5.1}\protected@file@percent }
+\newlabel{eq:EPS}{{1}{10}{Parametric Languages}{equation.5.1}{}}
+\newlabel{eq:EPS@cref}{{[subsection][1][5]5.1}{[1][9][]10}}
+\newlabel{eq:STAR}{{4}{10}{Parametric Languages}{equation.5.1}{}}
+\newlabel{eq:STAR@cref}{{[subsection][1][5]5.1}{[1][9][]10}}
+\newlabel{eq:COUNTING}{{5}{10}{Parametric Languages}{equation.5.1}{}}
+\newlabel{eq:COUNTING@cref}{{[subsection][1][5]5.1}{[1][9][]10}}
+\newlabel{eq:BOT}{{6}{10}{Parametric Languages}{equation.5.1}{}}
+\newlabel{eq:BOT@cref}{{[subsection][1][5]5.1}{[1][9][]10}}
+\newlabel{thm:LANG}{{5.1}{10}{}{theorem.5.1}{}}
+\newlabel{thm:LANG@cref}{{[theorem][1][5]5.1}{[1][10][]10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Conditional Derivation}{10}{subsection.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces $\textrm  {CA}\xspace  (\ensuremath  {\texttt  {(\texttt  {\makebox  [4pt]{{\huge  \texttt  {{.}}}}}\char `\{9\char `\})*}})$\relax }}{11}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:dot9star}{{2}{11}{$\CA (\regex {(\DOT \leftbrace 9\rightbrace )*})$\relax }{figure.caption.14}{}}
+\newlabel{fig:dot9star@cref}{{[figure][2][]2}{[1][11][]11}}
+\@writefile{toc}{\contentsline {paragraph}{\it  Example 5.3.\,}{11}{section*.15}\protected@file@percent }
+\citation{OOPSLA20TR}
+\citation{OOPSLA20TR}
+\citation{OOPSLA20TR}
+\newlabel{theorem:CD}{{5.4}{12}{}{theorem.5.4}{}}
+\newlabel{theorem:CD@cref}{{[theorem][4][5]5.4}{[1][12][]12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Constructing CAs from Conditional Derivatives}{12}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:ca-construction}{{5.3}{12}{Constructing CAs from Conditional Derivatives}{subsection.5.3}{}}
+\newlabel{sec:ca-construction@cref}{{[subsection][3][5]5.3}{[1][12][]12}}
+\newlabel{thm:deriv}{{5.5}{12}{}{theorem.5.5}{}}
+\newlabel{thm:deriv@cref}{{[theorem][5][5]5.5}{[1][12][]12}}
+\newlabel{theorem:SIZE}{{5.6}{12}{}{theorem.5.6}{}}
+\newlabel{theorem:SIZE@cref}{{[theorem][6][5]5.6}{[1][12][]12}}
+\newlabel{cor:deriv}{{5.7}{12}{}{theorem.5.7}{}}
+\newlabel{cor:deriv@cref}{{[corollary][7][5]5.7}{[1][12][]12}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}From Counting Automata to Counting-Set Automata}{13}{section.6}\protected@file@percent }
+\newlabel{sec:algo-idea}{{6}{13}{From Counting Automata to Counting-Set Automata}{section.6}{}}
+\newlabel{sec:algo-idea@cref}{{[section][6][]6}{[1][12][]13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Counting-Set Automata}{13}{subsection.6.1}\protected@file@percent }
+\newlabel{sec:CsA}{{6.1}{13}{Counting-Set Automata}{subsection.6.1}{}}
+\newlabel{sec:CsA@cref}{{[subsection][1][6]6.1}{[1][13][]13}}
+\@writefile{toc}{\contentsline {paragraph}{Counting sets.}{13}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Counting-set automata.}{13}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Semantics of {CsA\xspace  }s.}{14}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Runtime efficiency of counting sets.}{14}{section*.19}\protected@file@percent }
+\citation{SFAdeterm}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Encoding DFA Powerstates as CsA Configurations}{15}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:nonzero}{{6.2}{15}{Encoding DFA Powerstates as CsA Configurations}{subsection.6.2}{}}
+\newlabel{sec:nonzero@cref}{{[subsection][2][6]6.2}{[1][15][]15}}
+\@writefile{toc}{\contentsline {paragraph}{Naive encoding.}{15}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Encoding with counter scopes.}{15}{section*.21}\protected@file@percent }
+\citation{SFAdeterm}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Generalized Subset Construction}{16}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:subscons}{{6.3}{16}{Generalized Subset Construction}{subsection.6.3}{}}
+\newlabel{sec:subscons@cref}{{[subsection][3][6]6.3}{[1][16][]16}}
+\newlabel{eq:consistent}{{6.3}{17}{Generalized Subset Construction}{subsection.6.3}{}}
+\newlabel{eq:consistent@cref}{{[subsection][3][6]6.3}{[1][17][]17}}
+\newlabel{eq:caoptocsa}{{7}{17}{Generalized Subset Construction}{equation.6.7}{}}
+\newlabel{eq:caoptocsa@cref}{{[equation][7][]7}{[1][17][]17}}
+\newlabel{ex:det_trans_constr}{{6.4}{17}{}{theorem.6.4}{}}
+\newlabel{ex:det_trans_constr@cref}{{[example][4][6]6.4}{[1][17][]17}}
+\newlabel{fig:detsample:CA}{{3a}{18}{The CA for \texttt {\DOT *a\DOT {\leftbrace }4,8{\rightbrace }a}\relax }{figure.caption.23}{}}
+\newlabel{fig:detsample:CA@cref}{{[subfigure][1][3]3a}{[1][17][]18}}
+\newlabel{sub@fig:detsample:CA}{{a}{18}{The CA for \texttt {\DOT *a\DOT {\leftbrace }4,8{\rightbrace }a}\relax }{figure.caption.23}{}}
+\newlabel{sub@fig:detsample:CA@cref}{{[subfigure][1][3]3a}{[1][17][]18}}
+\newlabel{fig:detsample:CsA}{{3b}{18}{Determinization of the CA into a {\CSA }\relax }{figure.caption.23}{}}
+\newlabel{fig:detsample:CsA@cref}{{[subfigure][2][3]3b}{[1][17][]18}}
+\newlabel{sub@fig:detsample:CsA}{{b}{18}{Determinization of the CA into a {\CSA }\relax }{figure.caption.23}{}}
+\newlabel{sub@fig:detsample:CsA@cref}{{[subfigure][2][3]3b}{[1][17][]18}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces From a regex via a CA to a deterministic CsA. We are using a notation closely following the formal development. We only use $\Op (c)$ instead of $\Op [c]$ and abbreviate $\textsc  {canExit}_{c}$ by $\xi (c)$ and $\textsc  {canIncr}_{c}$ by $\iota (c)$. \relax }}{18}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:detsample}{{3}{18}{From a regex via a CA to a deterministic CsA. We are using a notation closely following the formal development. We only use $\Op (c)$ instead of $\Op [c]$ and abbreviate $\CanExitS c$ by $\xi (c)$ and $\CanIncrS c$ by $\iota (c)$. \relax }{figure.caption.23}{}}
+\newlabel{fig:detsample@cref}{{[figure][3][]3}{[1][17][]18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Uniformity: A Sufficient Semantic Correctness Criterion}{18}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:correctness}{{6.4}{18}{Uniformity: A Sufficient Semantic Correctness Criterion}{subsection.6.4}{}}
+\newlabel{sec:correctness@cref}{{[subsection][4][6]6.4}{[1][18][]18}}
+\newlabel{ex:noncartesian}{{6.5}{19}{}{theorem.6.5}{}}
+\newlabel{ex:noncartesian@cref}{{[example][5][6]6.5}{[1][19][]19}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces $\mathit  {CA}(\ensuremath  {\texttt  {(a|aa)\{5\}}})$.\relax }}{19}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:aoraafive}{{4}{19}{$\mathit {CA}(\regex {(a|aa)\{5\}})$.\relax }{figure.caption.24}{}}
+\newlabel{fig:aoraafive@cref}{{[figure][4][]4}{[1][19][]19}}
+\@writefile{toc}{\contentsline {paragraph}{Uniformity}{19}{section*.25}\protected@file@percent }
+\newlabel{thm:inv}{{6.6}{19}{}{theorem.6.6}{}}
+\newlabel{thm:inv@cref}{{[theorem][6][6]6.6}{[1][19][]19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Syntactic Correctness Criteria}{19}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:syntcorrectness}{{6.5}{19}{Syntactic Correctness Criteria}{subsection.6.5}{}}
+\newlabel{sec:syntcorrectness@cref}{{[subsection][5][6]6.5}{[1][19][]19}}
+\citation{aplas19}
+\citation{chipmunk}
+\citation{OOPSLA20TR}
+\citation{re2}
+\citation{grep}
+\citation{dotnet}
+\citation{VSXW19}
+\citation{regexes-in-the-wild}
+\citation{BoyerM77}
+\@writefile{toc}{\contentsline {paragraph}{Syntactic classes of regexes that guarantee uniformity.}{20}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Experimental Evaluation}{20}{section.7}\protected@file@percent }
+\newlabel{sec:experiments}{{7}{20}{Experimental Evaluation}{section.7}{}}
+\newlabel{sec:experiments@cref}{{[section][7][]7}{[1][20][]20}}
+\citation{mono}
+\citation{DavisMCSL19}
+\citation{snort}
+\citation{bro}
+\citation{sagan}
+\citation{yang2010,tacas18-appred}
+\citation{regexlib}
+\citation{aplas19}
+\citation{oopsla20-dataset}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}ReDoS Resiliency}{21}{subsection.7.1}\protected@file@percent }
+\newlabel{sec:exp_redos}{{7.1}{21}{ReDoS Resiliency}{subsection.7.1}{}}
+\newlabel{sec:exp_redos@cref}{{[subsection][1][7]7.1}{[1][21][]21}}
+\citation{tacas18-appred}
+\newlabel{fig:ca-vs-re2}{{5a}{22}{The comparison of running times of \catool and \retwo on our benchmark set (\catool wins: 287/1,789)\relax }{figure.caption.27}{}}
+\newlabel{fig:ca-vs-re2@cref}{{[subfigure][1][5]5a}{[1][21][]22}}
+\newlabel{sub@fig:ca-vs-re2}{{a}{22}{The comparison of running times of \catool and \retwo on our benchmark set (\catool wins: 287/1,789)\relax }{figure.caption.27}{}}
+\newlabel{sub@fig:ca-vs-re2@cref}{{[subfigure][1][5]5a}{[1][21][]22}}
+\newlabel{fig:increase}{{5b}{22}{Running times of the tools on the regex ``\regex {(\_a )\{$k$\}\_a}'' where~$k$ is a~parameter\relax }{figure.caption.27}{}}
+\newlabel{fig:increase@cref}{{[subfigure][2][5]5b}{[1][21][]22}}
+\newlabel{sub@fig:increase}{{b}{22}{Running times of the tools on the regex ``\regex {(\_a )\{$k$\}\_a}'' where~$k$ is a~parameter\relax }{figure.caption.27}{}}
+\newlabel{sub@fig:increase@cref}{{[subfigure][2][5]5b}{[1][21][]22}}
+\newlabel{fig:ca-vs-tools}{{5c}{22}{The comparison of running times of \catool with \grep , \dotnet , and \srm on our benchmark set\relax }{figure.caption.27}{}}
+\newlabel{fig:ca-vs-tools@cref}{{[subfigure][3][5]5c}{[1][21][]22}}
+\newlabel{sub@fig:ca-vs-tools}{{c}{22}{The comparison of running times of \catool with \grep , \dotnet , and \srm on our benchmark set\relax }{figure.caption.27}{}}
+\newlabel{sub@fig:ca-vs-tools@cref}{{[subfigure][3][5]5c}{[1][21][]22}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Graphs with results of our experiments. Note that, in\nonbreakingspace (\subref  {fig:ca-vs-re2}) and\nonbreakingspace (\subref  {fig:ca-vs-tools}), the axes are logarithmic, the dashed lines denote the timeout (600\,s), and the data points between the dashed lines and the edge of a plot represent benchmarks where the tool did not run successfully. We also provide the number of times \texttt  {CA}\xspace  won. \relax }}{22}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:graphs}{{5}{22}{Graphs with results of our experiments. Note that, in~(\subref {fig:ca-vs-re2}) and~(\subref {fig:ca-vs-tools}), the axes are logarithmic, the dashed lines denote the timeout (600\,s), and the data points between the dashed lines and the edge of a plot represent benchmarks where the tool did not run successfully. We also provide the number of times \catool won. \relax }{figure.caption.27}{}}
+\newlabel{fig:graphs@cref}{{[figure][5][]5}{[1][21][]22}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Statistics for the graphs in \cref  {fig:graphs} (times are given in seconds). For \texttt  {CA}\xspace  , we provide several times: ``total'' is the total time, ``CA'' is the time for translating a regex into a (nondeterministic) CA, ``CsA'' is the time of determinization of the CA into a CsA, and ``match'' is the time spent when matching the input text. \relax }}{23}{table.caption.28}\protected@file@percent }
+\newlabel{tab:stats}{{1}{23}{Statistics for the graphs in \cref {fig:graphs} (times are given in seconds). For \catool , we provide several times: ``total'' is the total time, ``CA'' is the time for translating a regex into a (nondeterministic) CA, ``CsA'' is the time of determinization of the CA into a CsA, and ``match'' is the time spent when matching the input text. \relax }{table.caption.28}{}}
+\newlabel{tab:stats@cref}{{[table][1][]1}{[1][22][]23}}
+\newlabel{sec:label}{{7.1.1}{23}{The Effect of Nondeterministic Counting}{subsubsection.7.1.1}{}}
+\newlabel{sec:label@cref}{{[subsubsection][1][7,1]7.1.1}{[1][23][]23}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.1.1}The Effect of Nondeterministic Counting}{23}{subsubsection.7.1.1}\protected@file@percent }
+\citation{DavisMCSL19}
+\citation{DavisMCSL19}
+\citation{DavisMCSL19}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Selection of interesting benchmarks. ``TO\xspace  '' denotes a\nonbreakingspace timeout (600\,s) and ``---'' denotes an error. Due to space constraints, in the ``Regex'' column, ``\ldots  '' denotes omitted parts of the regexes (we tried to preserve the parts containing occurrences of the repetition operator) and ``\leavevmode {\color  {gray}$\sim $}'' denotes breaking a regex into two lines. In the column source, Sw\ denotes the regexes collected in \citep  {DavisMCSL19} from software projects. \relax }}{24}{table.caption.29}\protected@file@percent }
+\newlabel{tab:best_results}{{2}{24}{Selection of interesting benchmarks. ``\timeout '' denotes a~timeout (600\,s) and ``---'' denotes an error. Due to space constraints, in the ``Regex'' column, ``\ldots '' denotes omitted parts of the regexes (we tried to preserve the parts containing occurrences of the repetition operator) and ``\recont '' denotes breaking a regex into two lines. In the column source, \LF \ denotes the regexes collected in \cite {DavisMCSL19} from software projects. \relax }{table.caption.29}{}}
+\newlabel{tab:best_results@cref}{{[table][2][]2}{[1][24][]24}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.1.2}Adversarial Regexes}{24}{subsubsection.7.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Robustness wrt\ Counter Values}{24}{subsection.7.2}\protected@file@percent }
+\newlabel{sec:label}{{7.2}{24}{Robustness wrt\ Counter Values}{subsection.7.2}{}}
+\newlabel{sec:label@cref}{{[subsection][2][7]7.2}{[1][24][]24}}
+\citation{regexes-in-the-wild,why-gnu-grep-is-fast}
+\citation{Brzozowski64_derivatives}
+\citation{Owens09,Fis10}
+\citation{VSXW19}
+\citation{BeSe86}
+\citation{Antimirov96_partderivatives}
+\citation{Champarnaud11_extended}
+\citation{Allauzen06_unified}
+\citation{aplas19}
+\citation{aplas19}
+\citation{aplas19}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Adversarial Text Generation}{25}{subsection.7.3}\protected@file@percent }
+\newlabel{sec:redos_gen}{{7.3}{25}{Adversarial Text Generation}{subsection.7.3}{}}
+\newlabel{sec:redos_gen@cref}{{[subsection][3][7]7.3}{[1][25][]25}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}A Note on the Maturity of the Tools}{25}{subsection.7.4}\protected@file@percent }
+\newlabel{sec:label}{{7.4}{25}{A Note on the Maturity of the Tools}{subsection.7.4}{}}
+\newlabel{sec:label@cref}{{[subsection][4][7]7.4}{[1][25][]25}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Related Work}{25}{section.8}\protected@file@percent }
+\newlabel{sec:related}{{8}{25}{Related Work}{section.8}{}}
+\newlabel{sec:related@cref}{{[section][8][]8}{[1][25][]25}}
+\@writefile{toc}{\contentsline {paragraph}{Regexes and their derivatives.}{25}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Automata with counting.}{25}{section*.31}\protected@file@percent }
+\citation{cikm15}
+\citation{GGM12}
+\citation{GGM12}
+\citation{cikm15}
+\citation{cikm15}
+\citation{KT03}
+\citation{cikm15}
+\citation{KT03}
+\citation{SEJ08,jha_extended}
+\citation{abdulla_rautomata}
+\citation{cheng_efsm,shiple_efsm,jha_extended,finkel_fast}
+\citation{Hovland09,KilTuh07,GMN07}
+\citation{Hovland09}
+\citation{Hovland09}
+\citation{Glu61}
+\citation{BP96,BW98}
+\citation{Allauzen06_unified}
+\citation{CZ01,IlieYu03}
+\citation{LOMBARDY2005141}
+\@writefile{toc}{\contentsline {paragraph}{Regexes with counting.}{26}{section*.32}\protected@file@percent }
+\citation{Brzozowski64_derivatives}
+\citation{GGM12,Chen15_counting}
+\citation{Hovland09}
+\citation{Hovland-Membership2012}
+\citation{DavisMCSL19}
+\citation{grep}
+\citation{re2}
+\citation{regexes-in-the-wild}
+\citation{VSXW19}
+\@writefile{toc}{\contentsline {paragraph}{Pattern matching of regexes with counting.}{27}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusions and Future Work}{27}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Acknowledgments}{27}{section*.35}\protected@file@percent }
+\bibdata{literature}
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{4.65pt}
+\newlabel{tocindent2}{11.49998pt}
+\newlabel{tocindent3}{20.22pt}
+\newlabel{TotPages}{{27}{27}{}{page.27}{}}
+\gdef \@abspage@last{27}
