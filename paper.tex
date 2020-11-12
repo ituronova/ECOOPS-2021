@@ -274,30 +274,35 @@ Not All Hackers Are Evil: Automated ReDos Generator for Detecting Vulnerable Reg
 \fi
 
 \begin{abstract} 
-We propose a solution to the problem of efficient matching regular expressions
-(regexes) with bounded repetition, such as \regex{(ab)\{1,100\}}, using
-deterministic automata. 
+In an  algorithmic complexity attack, a malicious party takes advantege of the worst-case behaviour of an algorithm to cause denial-of-service.
 %
-For this, we introduce novel \emph{counting-set automata (CsAs)},
-automata with registers that can hold sets of bounded integers and can be manipulated by a limited portfolio of constant-time operations.
+A prominent algorithmic complexity attack is regular expression denial-of-service (ReDoS), in which the attacker exploits a vulnerable regular expression by providing a carefully-crafter input string that triggers worst-case behavior of the matching algorithm.
 %
-We present an algorithm that compiles a large sub-class of regexes to
-deterministic CsAs.
-This includes (1) a novel Antimirov-style translation of regexes with counting to
-\emph{counting automata (CAs)}, nondeterministic automata with bounded counters,
-and (2) our main technical contribution, a determinization of CAs that outputs
-CsAs.
-%
-The main advantage of this workflow is that the size of the produced CsAs does
-not depend on the repetition bounds used in the regex (while the size of the DFA
-is exponential to them).
-%
-Our experimental results confirm that deterministic CsAs produced from practical
-regexes with repetition are indeed vastly smaller than the corresponding DFAs. 
-%
-More importantly, our prototype matcher based on CsA simulation handles practical regexes with repetition regardless of sizes of counter bounds. 
-%
-It easily copes with regexes with repetition where state-of-the-art matchers struggle.
+
+%We propose a solution to the problem of efficient matching regular expressions
+%(regexes) with bounded repetition, such as \regex{(ab)\{1,100\}}, using
+%deterministic automata. 
+%%
+%For this, we introduce novel \emph{counting-set automata (CsAs)},
+%automata with registers that can hold sets of bounded integers and can be manipulated by a limited portfolio of constant-time operations.
+%%
+%We present an algorithm that compiles a large sub-class of regexes to
+%deterministic CsAs.
+%This includes (1) a novel Antimirov-style translation of regexes with counting to
+%\emph{counting automata (CAs)}, nondeterministic automata with bounded counters,
+%and (2) our main technical contribution, a determinization of CAs that outputs
+%CsAs.
+%%
+%The main advantage of this workflow is that the size of the produced CsAs does
+%not depend on the repetition bounds used in the regex (while the size of the DFA
+%is exponential to them).
+%%
+%Our experimental results confirm that deterministic CsAs produced from practical
+%regexes with repetition are indeed vastly smaller than the corresponding DFAs. 
+%%
+%More importantly, our prototype matcher based on CsA simulation handles practical regexes with repetition regardless of sizes of counter bounds. 
+%%
+%It easily copes with regexes with repetition where state-of-the-art matchers struggle.
 \end{abstract}
 
 \maketitle
