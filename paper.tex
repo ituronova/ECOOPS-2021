@@ -116,7 +116,7 @@ counting-set automata
 %\usepackage{latexsym}
 \usepackage{amsmath}
 \usepackage{bbm}
-%\usepackage[linesnumbered,ruled,noend,noline,noresetcount]{algorithm2e}
+\usepackage[linesnumbered,ruled,noend,noline,noresetcount]{algorithm2e}
 % \usepackage{amssymb}      % Ondra: cannot compile with this...
 %\usepackage[hmargin=1cm,tmargin=1cm,bmargin=2cm]{geometry}
 %\usepackage{graphicx}
@@ -134,7 +134,7 @@ counting-set automata
 \usepackage[capitalise]{cleveref}
 % \usepackage[capitalise,noabbrev]{cleveref}
 \usepackage{adjustbox}
-
+%\usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tikz}
 \usetikzlibrary{arrows}
 \usetikzlibrary{automata}
@@ -274,10 +274,19 @@ Not All Hackers Are Evil: Automated ReDos Generator for Detecting Vulnerable Reg
 \fi
 
 \begin{abstract} 
-In an  algorithmic complexity attack, a malicious party takes advantege of the worst-case behaviour of an algorithm to cause denial-of-service.
+Regular expression matching can have exponential runtime and may lead to an algorithmic complexity attack known as denial-of-service (ReDoS) attack.
 %
-A prominent algorithmic complexity attack is regular expression denial-of-service (ReDoS), in which the attacker exploits a vulnerable regular expression by providing a carefully-crafter input string that triggers worst-case behavior of the matching algorithm.
+One way, how the attacker may launch ReDoS attack is to carefully craft an input string that matches the theoretical worst-case performance of the matching algorithm.
 %
+This paper presents a tool \catool which automatically generates evil strings to detect vulnerabilities of given regexes. 
+%
+Our technique especially focuses on regular expressions (regexes) with bounded repetition, such as $(ab)\{100\}$.
+%
+\catool constructs a deterministic counting-set automaton (\emph{CsA}) and then uses guided search techniques that exploits the state space towards the maximal counting loops.
+%
+We evaluated it against 5540 regexes from real-world SW projects. 
+%
+The evaluation results show that \catool found 4 times more attack strings compared to the best state-of-the-art techniques.
 
 %We propose a solution to the problem of efficient matching regular expressions
 %(regexes) with bounded repetition, such as \regex{(ab)\{1,100\}}, using
@@ -313,7 +322,11 @@ A prominent algorithmic complexity attack is regular expression denial-of-servic
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}\label{sec:intro}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%Regular expressions are a powerful means of searching and manipulating text, e.g., for searching, data validation, parsing, finding and replacing, data
+%scraping, or syntax highlighting.
+%
+%Regexes are supported in many programming languages (such as Perl, Python, PHP or Java). 
+%
 Matching \emph{regexes} (regular expressions) is a ubiquitous component of software, 
 used, e.g., for searching, data validation, parsing, finding and replacing, data
 scraping, or syntax highlighting. It is commonly used and natively supported in most programming languages \cite{regexwiki}.
@@ -383,7 +396,7 @@ closely corresponds to the notion of \emph{1-unambiguity of the regex} \cite{BW9
  that lead to exploding determinization are, however, problematic for all variants, explicit determinization as well as NFA simulation, with or without caching.
 %
 
-In this paper, we focus on eliminating a frequent cause of a DFA explosion---a use of
+In this paper, we focus on regulare expressions with
 %
 the \emph{counting operator}, also known as the operator of \emph{bounded repetition}. 
 %
@@ -398,6 +411,8 @@ counter bounds being as large as 10 million~\cite{cikm15};
 %
 or in detecting information leakage from traffic
 logs~\cite{aplas19}. 
+%
+These regular expression are more likely to be vulnerable again ReDoS attacks.
 
 To illustrate the principal difficulty with matching bounded repetitions,
 especially when combined with a high degree of nondeterminism, 
@@ -429,188 +444,188 @@ searching for a pattern ``anywhere on the line'' (corresponding to prefixing the
 pattern with $\regex{\DOT*}$), which is the standard behaviour for GNU~\grep and
 similar programs \mbox{when start/end of line anchors are not used.}
 
-To facilitate efficient matching of such nondeterministic counting,  
-we propose a translation from regexes with repetition to deterministic
-machines that are succinct and can perform matching with nearly constant character complexity.
+%To facilitate efficient matching of such nondeterministic counting,  
+%we propose a translation from regexes with repetition to deterministic
+%machines that are succinct and can perform matching with nearly constant character complexity.
+%%
+%The novel succinct and fast deterministic machine, called the \emph{counting-set
+%automaton (\CSA)}, is the key to the result.
+%%
+%It is a deterministic finite automaton with a special type of registers that
+%can hold values called \emph{counting sets}---a~set of bounded integer
+%values---and
+%%
+%support a~limited selection of simple set operations. 
+%%
+%Crucially for the efficiency of our approach,
+%we show that, using a suitable data structure, all
+%the set operations can be implemented to run in \emph{constant time} regardless of the size of the set.
 %
-The novel succinct and fast deterministic machine, called the \emph{counting-set
-automaton (\CSA)}, is the key to the result.
+%Our compilation from regexes to {\CSA}s proceeds in two steps.
+%%
+%First, we compile the regexes into nondeterministic \emph{counting
+%automata~({\CA}s)}, automata with counters whose values are \emph{a priori}
+%bounded.
+%%
+%Variants of CAs have been used in several other works under different names,
+%%
+%e.g., ~\cite{aplas19,Hovland09,KilTuh07,jha_extended,Sperberg-McQueen-ExtendedFAWeb,GGM12,cikm15}.
+%%
+%The compilation from regexes is cheap and produces automata whose size is
+%independent of the counter bounds and linear in the size of the regex.
+%We present a novel translation of regexes to CAs that generalizes
+%the Antimirov's derivative construction \cite{Antimirov96_partderivatives}.
+%Our translation has several advantages over the existing alternatives, such as
+%absence of $\epsilon$-transitions in the output CA and succinctness. 
+%%
+%The result of translating the regex \regex{\DOT*a\DOT\{$k$\}} into a~CA is
+%illustrated in \cref{fig:ak:nondet}.
+%%
 %
-It is a deterministic finite automaton with a special type of registers that
-can hold values called \emph{counting sets}---a~set of bounded integer
-values---and
+%The main step forward we make in this paper is a solution of efficient matching
+%for a large class of highly nondeterministic regexes with counting that are
+%quite common in practice.
+%%
+%The main technical problem we have solved is a succinct transformation
+%of a~(nondeterministic) CA into a~\emph{deterministic CsA}.  
+%%
+%Our algorithm produces a~CsA in \emph{time independent of
+%the counter bounds}.
+%%
+%We note that this has been a known open problem (emphasized, e.g., in~\cite{Sperberg-McQueen-ExtendedFAWeb}). Works on matching of bounded repetition such as~\cite{GGM12,cikm15,Hovland09,KilTuh07,SEJ08,aplas19,KT03} mostly focus on deterministic regexes and do not propose practical solutions for the nondeterministic case.
+%%
+%We have carried out an extensive experimental evaluation of our algorithm on a
+%large sample of regexes used for pattern matching in various applications.
+%%
+%The experiments show that our algorithm, although also limited to a sub-class of regexes,
+%handles over 90\,\% of regexes with counting we collected. 
+%%
+%The obtained data confirm that our CsAs are indeed far smaller and can be
+%constructed faster than corresponding DFAs.
+%%
+%Most importantly, we demonstrate the practical relevance of our algorithm for pattern matching. 
+%%
+%We have implemented a matching algorithm based on CsA
+%simulation%
+%\footnote{We use a pre-computed deterministic CsA. While on-the-fly
+%determinization is also possible, it was not needed in our experimentation since we have not witnessed problems with CsA state space explosion.
+%} 
+%and compared it
+%with several state-of-the-art matchers, namely, \grep \cite{grep}, \retwo \cite{re2}, \srm \cite{VSXW19}, and \dotnet \cite{dotnet}.
+%%
+%Our results show that problematic highly nondeterministic regexes with counting
+%indeed appear in practice and can also be easily crafted as a ReDoS attack, 
+%and that CsAs can efficiently solve most of such problematic cases.
+%For instance, the regex $\regex{(\_a)\{64999\}\_a}$ from~\cite{DavisMCSL19}
+%can cause state-of-the-art matchers exceed any reasonable time limit (when searching for the pattern anywhere on the line, with the implicit \regex{\DOT*} in front). Already
+%with the counter bounds lowered to 1,000, the matchers take from 6 to 34 seconds
+%on 500\,KiB of text, but our algorithm needs only 1 second even with the
+%original bound 64,999.
 %
-support a~limited selection of simple set operations. 
+%We summarize the technical contributions of this work as follows:
+%\begin{enumerate}
+%%\vspace{-0.5mm}
+%%\enlargethispage{1.5mm}
+%\item A novel Antimirov style regex-to-CA translation.
+%\item A novel notion of the counting-set automaton, a deterministic machine that
+%allows for succinct representation of counting constraints and fast matching.
+%\item CA-to-CsA determinization that runs in time independent of counter bounds.
+%\item A regex-matching algorithm interconnecting the above, efficient regardless
+%  of counter bounds  especially on regexes that combine counting with nondeterminism.
+%\item Implementation and extensive experimental evaluation of the above.
+%\end{enumerate}
 %
-Crucially for the efficiency of our approach,
-we show that, using a suitable data structure, all
-the set operations can be implemented to run in \emph{constant time} regardless of the size of the set.
-
-Our compilation from regexes to {\CSA}s proceeds in two steps.
+%\begin{figure}[t]
+%  \begin{subfigure}[b]{0.45\linewidth}
+%  \scalebox{0.8}{
+%    \hspace*{-4mm}
+%    \input{figures/ak_new.tikz}
+%  }
+%  \vspace*{3mm}
+%  \caption{The CA for the regex \regex{\DOT*a\DOT\{$k$\}}}
+%  \label{fig:ak:nondet}
+%  \end{subfigure}
+%  \hfill
+%  \begin{subfigure}[b]{0.54\linewidth}
+%  \scalebox{0.8}{
+%    \hspace*{-4mm}
+%    \input{figures/akdet_new.tikz}
+%  }
+%  \caption{The CsA from determinization of (\subref{fig:ak:nondet})}
+%  \label{fig:ak:det}
+%  \end{subfigure}
+%\begin{center}
+%\end{center}
+%\vspace{-6mm}
+%\caption{
+%  The nondeterministic CA and the deterministic CsA for {\regex{\DOT*a\DOT\{100\}}}.
+%  The transitions are labeled by their \emph{guard}, which gives the character
+%  class (in the standard POSIX regex notation, where, e.g.,~$\DOT$ stands for ``any
+%  character'') and possibly restricts counter values, delimited by ``$/$'' from the counter
+%  \emph{update}. If a counter does not have the update specified, then the
+%  transition does not change its value. In~(\subref{fig:ak:det}), the
+%  notation $c+1$ stands for the set of values obtained by incrementing each
+%  value in $c$ and then \emph{removing} values larger than the upper bound $100$
+%  of the counter. The edges denoting initial states are labelled with
+%  \emph{initial values} of the counters. Final states are labelled with
+%  an \emph{acceptance condition}, e.g.~$\{c \geq 100\}$ in~(\subref{fig:ak:nondet}).
+%  \\
+%  The formal counter operations $\Op[c]$ presented later in  \cref{sec:CA} are
+%  in (\subref{fig:ak:nondet}) shown as follows: the guard of $\Op[c]$ is shown
+%  in conjunction with the character guard $\alpha$ on the left of the ``/'', the
+%  update of $\Op[c]$ is shown on the right of ``$/$'' in the form of an
+%  assignment to $c$, where $\IncrOp[c]$ appears as the right value $c+1$,
+%  $\ExitOp$ as~$0$, $\ExitIncrOp$ as~$1$, and $\NoOp$ is omitted.
+%\vspace{-2mm}
+%}
+%\label{fig:ak}
+%\end{figure}
 %
-First, we compile the regexes into nondeterministic \emph{counting
-automata~({\CA}s)}, automata with counters whose values are \emph{a priori}
-bounded.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\vspace{-0.0mm}
+%\section{Overview}\label{sec:overview}
+%\vspace{-0.0mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-Variants of CAs have been used in several other works under different names,
+%We give a brief overview of our conversion of a~regex with counting into
+%a~deterministic CsA.
+%%
+%We use the example regex $R = \regex{\DOT*a\DOT\{100\}}$, discussed already in the
+%introduction and representing strings where the symbol \regex{a} appears 100
+%positions from the end, with the corresponding minimum DFA having $2^{101}$
+%states.
+%%
+%The conversion proceeds in two steps.  First, $R$ is translated into
+%a~nondeterministic CA (\cref{fig:ak:nondet}), denoted as $\CA(R)$; second, $\CA(R)$ is converted into
+%a~deterministic CsA (\cref{fig:ak:det}).
+%%
+%The size of both is independent of the counter bounds \mbox{(both of the
+%automata will have 2 states only).}
 %
-e.g., ~\cite{aplas19,Hovland09,KilTuh07,jha_extended,Sperberg-McQueen-ExtendedFAWeb,GGM12,cikm15}.
+%%\paragraph{Counting-Set Data Structure}
+%%Before looking into the conversion from regular expressions to CsAs it
+%%is useful to first understand \emph{why} the resulting CsA can be used
+%%efficiently for matching in the first place.  The main enabler behind
+%%this is the use of our \emph{counting set} data structure, say $c$,
+%%representing sets $S_c\subseteq \{0,\ldots, \MAX{c}\}$ where the upper
+%%bound $\MAX{c}$ is a fixed positive integer.  
+%%A \emph{runtime value} of $c$ is a tuple $(o,\ell)$ where $o\in\nat$ is called an
+%%\emph{offset} and $\ell$ is a queue of strictly increasing natural numbers such that
+%%$S_c = \{o - n \mid n \in \ell\}$. %, and it is obvious that $S_c \subseteq \{0,\ldots,\MAX{c}\}$.
+%%
+%%The data structure supports \emph{constant-time} implementations of the following operations, assuming the access to the first and the last element of the queue in constant time (the queue may be implemented as a doubly linked list).
+%%\begin{itemize}
+%%\item The minimum and the maximum of $S_c$ are obtained as $o-\textit{last}(\ell)$ and $o-\textit{first}(\ell)$, respectively. 
+%%\item Insert 0: if $o-\textit{last}(\ell)>0$, then append $o$ at the end of $\ell$ (similarly for inserting $1$)
+%%\item Increment all, up to $\MAX c$: $o:=o+1$; if $o - \textit{first}(\ell) > \MAX{c} $, then remove $\textit{first}(\ell)$.
+%%\item Reset to $\{0\}$: $\ell:=0$; $o:=0$ (similarly for reset to $\{1\}$).
+%%\end{itemize}
+%%The independence of the run-time of these operations from {$\MAX{c}$ enables our major achievement:} 
+%%\begin{center}
+%%\emph{the independence of the running time from the counter bounds.}
+%%\end{center}
 %
-The compilation from regexes is cheap and produces automata whose size is
-independent of the counter bounds and linear in the size of the regex.
-We present a novel translation of regexes to CAs that generalizes
-the Antimirov's derivative construction \cite{Antimirov96_partderivatives}.
-Our translation has several advantages over the existing alternatives, such as
-absence of $\epsilon$-transitions in the output CA and succinctness. 
 %
-The result of translating the regex \regex{\DOT*a\DOT\{$k$\}} into a~CA is
-illustrated in \cref{fig:ak:nondet}.
-%
-
-The main step forward we make in this paper is a solution of efficient matching
-for a large class of highly nondeterministic regexes with counting that are
-quite common in practice.
-%
-The main technical problem we have solved is a succinct transformation
-of a~(nondeterministic) CA into a~\emph{deterministic CsA}.  
-%
-Our algorithm produces a~CsA in \emph{time independent of
-the counter bounds}.
-%
-We note that this has been a known open problem (emphasized, e.g., in~\cite{Sperberg-McQueen-ExtendedFAWeb}). Works on matching of bounded repetition such as~\cite{GGM12,cikm15,Hovland09,KilTuh07,SEJ08,aplas19,KT03} mostly focus on deterministic regexes and do not propose practical solutions for the nondeterministic case.
-%
-We have carried out an extensive experimental evaluation of our algorithm on a
-large sample of regexes used for pattern matching in various applications.
-%
-The experiments show that our algorithm, although also limited to a sub-class of regexes,
-handles over 90\,\% of regexes with counting we collected. 
-%
-The obtained data confirm that our CsAs are indeed far smaller and can be
-constructed faster than corresponding DFAs.
-%
-Most importantly, we demonstrate the practical relevance of our algorithm for pattern matching. 
-%
-We have implemented a matching algorithm based on CsA
-simulation%
-\footnote{We use a pre-computed deterministic CsA. While on-the-fly
-determinization is also possible, it was not needed in our experimentation since we have not witnessed problems with CsA state space explosion.
-} 
-and compared it
-with several state-of-the-art matchers, namely, \grep \cite{grep}, \retwo \cite{re2}, \srm \cite{VSXW19}, and \dotnet \cite{dotnet}.
-%
-Our results show that problematic highly nondeterministic regexes with counting
-indeed appear in practice and can also be easily crafted as a ReDoS attack, 
-and that CsAs can efficiently solve most of such problematic cases.
-For instance, the regex $\regex{(\_a)\{64999\}\_a}$ from~\cite{DavisMCSL19}
-can cause state-of-the-art matchers exceed any reasonable time limit (when searching for the pattern anywhere on the line, with the implicit \regex{\DOT*} in front). Already
-with the counter bounds lowered to 1,000, the matchers take from 6 to 34 seconds
-on 500\,KiB of text, but our algorithm needs only 1 second even with the
-original bound 64,999.
-
-We summarize the technical contributions of this work as follows:
-\begin{enumerate}
-%\vspace{-0.5mm}
-%\enlargethispage{1.5mm}
-\item A novel Antimirov style regex-to-CA translation.
-\item A novel notion of the counting-set automaton, a deterministic machine that
-allows for succinct representation of counting constraints and fast matching.
-\item CA-to-CsA determinization that runs in time independent of counter bounds.
-\item A regex-matching algorithm interconnecting the above, efficient regardless
-  of counter bounds  especially on regexes that combine counting with nondeterminism.
-\item Implementation and extensive experimental evaluation of the above.
-\end{enumerate}
-
-\begin{figure}[t]
-  \begin{subfigure}[b]{0.45\linewidth}
-  \scalebox{0.8}{
-    \hspace*{-4mm}
-    \input{figures/ak_new.tikz}
-  }
-  \vspace*{3mm}
-  \caption{The CA for the regex \regex{\DOT*a\DOT\{$k$\}}}
-  \label{fig:ak:nondet}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.54\linewidth}
-  \scalebox{0.8}{
-    \hspace*{-4mm}
-    \input{figures/akdet_new.tikz}
-  }
-  \caption{The CsA from determinization of (\subref{fig:ak:nondet})}
-  \label{fig:ak:det}
-  \end{subfigure}
-\begin{center}
-\end{center}
-\vspace{-6mm}
-\caption{
-  The nondeterministic CA and the deterministic CsA for {\regex{\DOT*a\DOT\{100\}}}.
-  The transitions are labeled by their \emph{guard}, which gives the character
-  class (in the standard POSIX regex notation, where, e.g.,~$\DOT$ stands for ``any
-  character'') and possibly restricts counter values, delimited by ``$/$'' from the counter
-  \emph{update}. If a counter does not have the update specified, then the
-  transition does not change its value. In~(\subref{fig:ak:det}), the
-  notation $c+1$ stands for the set of values obtained by incrementing each
-  value in $c$ and then \emph{removing} values larger than the upper bound $100$
-  of the counter. The edges denoting initial states are labelled with
-  \emph{initial values} of the counters. Final states are labelled with
-  an \emph{acceptance condition}, e.g.~$\{c \geq 100\}$ in~(\subref{fig:ak:nondet}).
-  \\
-  The formal counter operations $\Op[c]$ presented later in  \cref{sec:CA} are
-  in (\subref{fig:ak:nondet}) shown as follows: the guard of $\Op[c]$ is shown
-  in conjunction with the character guard $\alpha$ on the left of the ``/'', the
-  update of $\Op[c]$ is shown on the right of ``$/$'' in the form of an
-  assignment to $c$, where $\IncrOp[c]$ appears as the right value $c+1$,
-  $\ExitOp$ as~$0$, $\ExitIncrOp$ as~$1$, and $\NoOp$ is omitted.
-\vspace{-2mm}
-}
-\label{fig:ak}
-\end{figure}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\vspace{-0.0mm}
-\section{Overview}\label{sec:overview}
-\vspace{-0.0mm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-We give a brief overview of our conversion of a~regex with counting into
-a~deterministic CsA.
-%
-We use the example regex $R = \regex{\DOT*a\DOT\{100\}}$, discussed already in the
-introduction and representing strings where the symbol \regex{a} appears 100
-positions from the end, with the corresponding minimum DFA having $2^{101}$
-states.
-%
-The conversion proceeds in two steps.  First, $R$ is translated into
-a~nondeterministic CA (\cref{fig:ak:nondet}), denoted as $\CA(R)$; second, $\CA(R)$ is converted into
-a~deterministic CsA (\cref{fig:ak:det}).
-%
-The size of both is independent of the counter bounds \mbox{(both of the
-automata will have 2 states only).}
-
-\paragraph{Counting-Set Data Structure}
-Before looking into the conversion from regular expressions to CsAs it
-is useful to first understand \emph{why} the resulting CsA can be used
-efficiently for matching in the first place.  The main enabler behind
-this is the use of our \emph{counting set} data structure, say $c$,
-representing sets $S_c\subseteq \{0,\ldots, \MAX{c}\}$ where the upper
-bound $\MAX{c}$ is a fixed positive integer.  
-A \emph{runtime value} of $c$ is a tuple $(o,\ell)$ where $o\in\nat$ is called an
-\emph{offset} and $\ell$ is a queue of strictly increasing natural numbers such that
-$S_c = \{o - n \mid n \in \ell\}$. %, and it is obvious that $S_c \subseteq \{0,\ldots,\MAX{c}\}$.
-
-The data structure supports \emph{constant-time} implementations of the following operations, assuming the access to the first and the last element of the queue in constant time (the queue may be implemented as a doubly linked list).
-\begin{itemize}
-\item The minimum and the maximum of $S_c$ are obtained as $o-\textit{last}(\ell)$ and $o-\textit{first}(\ell)$, respectively. 
-\item Insert 0: if $o-\textit{last}(\ell)>0$, then append $o$ at the end of $\ell$ (similarly for inserting $1$)
-\item Increment all, up to $\MAX c$: $o:=o+1$; if $o - \textit{first}(\ell) > \MAX{c} $, then remove $\textit{first}(\ell)$.
-\item Reset to $\{0\}$: $\ell:=0$; $o:=0$ (similarly for reset to $\{1\}$).
-\end{itemize}
-The independence of the run-time of these operations from {$\MAX{c}$ enables our major achievement:} 
-\begin{center}
-\emph{the independence of the running time from the counter bounds.}
-\end{center}
-
-
 %\vspace{-1mm}
 %\paragraph{Counting-Set Data Structure}
 %Before looking into the conversion from regular expressions to CsAs it
@@ -671,170 +686,170 @@ The independence of the run-time of these operations from {$\MAX{c}$ enables our
 %\begin{center}
 %\emph{the independence of the running time from the counter bounds.}
 %\end{center}
-
-
-Let us now illustrate how this data structure works during matching.
-We run the CsA in \cref{fig:ak:det}, assuming the meaning of the
-operations provided above, over the sample input word 
-$\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{dfa}$.
-\begin{wrapfigure}[10]{r}{90mm}
-\vspace*{-5.5mm}
-%\hspace*{-2mm}
-\begin{minipage}{60mm}
-{\small
-$$
-\begin{array}{lllll}
-\multicolumn{1}{c}{\text{prefix}} & 
-\multicolumn{1}{c}{\text{state}} & 
-\multicolumn{1}{c}{(o,\ell)} & 
-\multicolumn{1}{c}{S_c} \\ 
-\hline
-\epsilon                                          &\{q\}  &(0,[0])           & \{0\}\\
-\texttt{a}                                        &\{q,s\}&(0,[0])           & \{0\}\\
-\texttt{aa}                                       &\{q,s\}&(1,[0,1])         & \{1,0\}\\
-\texttt{aa0}^{(10)}                               &\{q,s\}&(11,[0,1])        & \{11,10\}\\
-\texttt{aa0}^{(10)}\texttt{aa}                    &\{q,s\}&(13,[0,1,12,13])  & \{13,12,1,0\}\\
-\texttt{aa0}^{(10)}\texttt{aab}^{(87)}            &\{q,s\}&(100,[0,1,12,13]) & \{100,99,88,87\}\\
-\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{d}  &\{q,s\}&(101,[1,12,13])   & \{100,89,88\}\\
-\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{df} &\{q,s\}&(102,[12,13])     & \{89,88\}\\
-\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{dfa}&\{q,s\}&(103,[12,13,103]) & \{90,89,0\}
-\end{array}
-$$
-}
-\end{minipage}
-\end{wrapfigure}
-The configurations of the automaton after processing prefixes of the word are shown in the table (the control state, the counting-set run-time configuration $(o,\ell)$ and the value $S_c$ it represents.
 %
-The state $\{q,s\}$ fulfills the \emph{accepting condition} after processing the 6th and the 7th prefix, since the maximum of $S_c$ at these points is indeed at least $100$. 
-
-
-\vspace{-0.5mm}
-\enlargethispage{1mm}
-%------------------------------------------------------------------------------
-\paragraph{From a Nondeterministic CA to a Deterministic CsA}
-%------------------------------------------------------------------------------
-
-The idea of our CA-to-CsA determinization is best explained by comparison with
-the naive determinization of a~CA, which would create a~DFA by the explicit
-textbook-style subset construction.
 %
-The states of the DFA would then be sets of runtime configurations of the CA
-where each CA-configuration would consist of a~control state and a~counter
-valuation.
+%%Let us now illustrate how this data structure works during matching.
+%%We run the CsA in \cref{fig:ak:det}, assuming the meaning of the
+%%operations provided above, over the sample input word 
+%%$\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{dfa}$.
+%%\begin{wrapfigure}[10]{r}{90mm}
+%%\vspace*{-5.5mm}
+%%%\hspace*{-2mm}
+%%\begin{minipage}{60mm}
+%%{\small
+%%$$
+%%\begin{array}{lllll}
+%%\multicolumn{1}{c}{\text{prefix}} & 
+%%\multicolumn{1}{c}{\text{state}} & 
+%%\multicolumn{1}{c}{(o,\ell)} & 
+%%\multicolumn{1}{c}{S_c} \\ 
+%%\hline
+%%\epsilon                                          &\{q\}  &(0,[0])           & \{0\}\\
+%%\texttt{a}                                        &\{q,s\}&(0,[0])           & \{0\}\\
+%%\texttt{aa}                                       &\{q,s\}&(1,[0,1])         & \{1,0\}\\
+%%\texttt{aa0}^{(10)}                               &\{q,s\}&(11,[0,1])        & \{11,10\}\\
+%%\texttt{aa0}^{(10)}\texttt{aa}                    &\{q,s\}&(13,[0,1,12,13])  & \{13,12,1,0\}\\
+%%\texttt{aa0}^{(10)}\texttt{aab}^{(87)}            &\{q,s\}&(100,[0,1,12,13]) & \{100,99,88,87\}\\
+%%\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{d}  &\{q,s\}&(101,[1,12,13])   & \{100,89,88\}\\
+%%\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{df} &\{q,s\}&(102,[12,13])     & \{89,88\}\\
+%%\texttt{aa0}^{(10)}\texttt{aab}^{(86)}\texttt{dfa}&\{q,s\}&(103,[12,13,103]) & \{90,89,0\}
+%%\end{array}
+%%$$
+%%}
+%%\end{minipage}
+%%\end{wrapfigure}
+%%The configurations of the automaton after processing prefixes of the word are shown in the table (the control state, the counting-set run-time configuration $(o,\ell)$ and the value $S_c$ it represents.
+%%%
+%%The state $\{q,s\}$ fulfills the \emph{accepting condition} after processing the 6th and the 7th prefix, since the maximum of $S_c$ at these points is indeed at least $100$. 
+%%
+%%
+%%\vspace{-0.5mm}
+%%\enlargethispage{1mm}
+%%------------------------------------------------------------------------------
+%\paragraph{From a Nondeterministic CA to a Deterministic CsA}
+%%------------------------------------------------------------------------------
 %
-Counter valuations would hence be ``unfolded''---they would become an explicit
-part of the DFA control states---and the succinctness provided by counters would
-be lost.
-%
-For instance, the run 
-of the CA in \cref{fig:ak:nondet} on the word $\texttt{aaa}\ldots$ generates ``powerstates''
+%The idea of our CA-to-CsA determinization is best explained by comparison with
+%the naive determinization of a~CA, which would create a~DFA by the explicit
+%textbook-style subset construction.
+%%
+%The states of the DFA would then be sets of runtime configurations of the CA
+%where each CA-configuration would consist of a~control state and a~counter
+%valuation.
+%%
+%Counter valuations would hence be ``unfolded''---they would become an explicit
+%part of the DFA control states---and the succinctness provided by counters would
+%be lost.
+%%
+%For instance, the run 
+%of the CA in \cref{fig:ak:nondet} on the word $\texttt{aaa}\ldots$ generates ``powerstates''
+%%\[
+%%\{(q,0)\}, \{(q,0),(s,0)\}, \{(q,0),(s,0),(s,1)\},
+%%\{(q,0),(s,0),(s,1),(s,2)\}
+%%\]
+%\newcommand{\cequals}{c{=}}
 %\[
-%\{(q,0)\}, \{(q,0),(s,0)\}, \{(q,0),(s,0),(s,1)\},
-%\{(q,0),(s,0),(s,1),(s,2)\}
+%\{(q,\cequals 0)\}, \ \{(q,\cequals 0),(s,\cequals 0)\}, \ \{(q,\cequals 0),(s,\cequals 0),(s,\cequals 1)\}, \ 
+%\{(q,\cequals 0),(s,\cequals 0),(s,\cequals 1),(s,\cequals 2)\}, \ldots
 %\]
-\newcommand{\cequals}{c{=}}
-\[
-\{(q,\cequals 0)\}, \ \{(q,\cequals 0),(s,\cequals 0)\}, \ \{(q,\cequals 0),(s,\cequals 0),(s,\cequals 1)\}, \ 
-\{(q,\cequals 0),(s,\cequals 0),(s,\cequals 1),(s,\cequals 2)\}, \ldots
-\]
-which are essentially subsets of $\{q,s\}\times\{0,\ldots, 100\}$.
+%which are essentially subsets of $\{q,s\}\times\{0,\ldots, 100\}$.
+%%
+%In the worst case, the size of the DFA would be exponential in counter bounds
+%because $s$ can be paired with any subset of $\{0,\ldots, 100\}$ recording possible
+%values of $c$.
+%%
+%In contrast to this, as illustrated above,
+%our CsA represents the counter valuations implicitly: it
+%computes them dynamically on the fly and stores them as \emph{counting
+%sets}---i.e., the valuation of a counter changes from an integer to a \emph{set}
+%of integers.
+%%
+%The counter valuations are hence not a part of control states, and their overall
+%number influences neither the size of the CsA nor the time needed to build them.
 %
-In the worst case, the size of the DFA would be exponential in counter bounds
-because $s$ can be paired with any subset of $\{0,\ldots, 100\}$ recording possible
-values of $c$.
+%\cref{fig:ak:det} shows the CsA obtained from determinization of the CA in
+%\cref{fig:ak:nondet}.
+%%
+%The runtime configurations of the CsA, 
+%reached for the word $\texttt{aaa}$ are
+%\newcommand{\cin}{c{\in}}
+%\[
+%(\{q\},\cin\{0\}), \ \ (\{q,s\},\cin\{0\}), \ \ (\{q,s\},\cin\{0,1\}), \ \  
+%(\{q,s\},\cin\{0,1,2\}),
+%\]
+%%
+%which precisely corresponds to the first three steps of the sample DFA run above. 
+%%
+%Namely, the control states are kept in the first component
+%and the counter values are in the second component, i.e.,
+%the set $S_c$ represented by the run-time values of~$c$.
+%%
+%The second is not relevant for the states where the counter is never active
+% (always~$0$; in this case $q$).
+%%
+%The implicit value $0$ of $c$ in~$q$ is not
+%recorded in the counting sets.
 %
-In contrast to this, as illustrated above,
-our CsA represents the counter valuations implicitly: it
-computes them dynamically on the fly and stores them as \emph{counting
-sets}---i.e., the valuation of a counter changes from an integer to a \emph{set}
-of integers.
+%We note that some DFA powerstates cannot be encoded as CsA configurations due to
+%the involved Cartesian abstraction: essentially, any state in the powerset is
+%paired with any counter value from the counting set.
+%%
+%Hence, our approach does not handle the full class of regexes.
+%%
+%Fortunately, as our empirical evidence shows, regexes that fall out from the
+%supported class are rare in practice.
 %
-The counter valuations are hence not a part of control states, and their overall
-number influences neither the size of the CsA nor the time needed to build them.
-
-\cref{fig:ak:det} shows the CsA obtained from determinization of the CA in
-\cref{fig:ak:nondet}.
+%%------------------------------------------------------------------------------
+%\paragraph{From Regexes to Nondeterministic CAs}
+%%------------------------------------------------------------------------------
 %
-The runtime configurations of the CsA, 
-reached for the word $\texttt{aaa}$ are
-\newcommand{\cin}{c{\in}}
-\[
-(\{q\},\cin\{0\}), \ \ (\{q,s\},\cin\{0\}), \ \ (\{q,s\},\cin\{0,1\}), \ \  
-(\{q,s\},\cin\{0,1,2\}),
-\]
+%To translate a regex into a CA, we propose a~generalization of the Antimirov's
+%derivative construction \cite{Antimirov96_partderivatives} to symbolic counting.
+%%
+%In Antimirov's setting, a~derivative of a regex~$R$ wrt a character class
+%$\alpha$ is a set of regexes that together capture all tails of words in
+%$\langof R$ whose head character is from $\alpha$. 
+%%
+%In particular, according to \cite{VSXW19}, which
+%generalizes~\cite{Antimirov96_partderivatives} to \emph{explicit} counting, the derivatives
+%of the regex $R = \regex{\DOT*a\DOT\{100\}}$ wrt the classes $\regex{a}$ and
+%$\notacl$ are $\{R,\regex{\DOT\{100\}}\}$ and $\{R\}$, respectively.
+%%
+%Further, for $1\leq k \leq 100$, the derivative of \regex{\DOT\{$k$\}} wrt both
+%\regex{a} and $\notacl$ is $\{ \regex{\DOT\{}k-1\regex{\}}\}$.
+%%
+%The derivatives become the states of the resulting NFA, with $R$ being
+%initial and $\regex{\DOT\{0\}}$ final, and with $\alpha$-transitions from each
+%regex to all its $\alpha$-derivatives \mbox{(for $\alpha$ being either $\regex{a}$ or
+%$\notacl$).
+%%
+%The obtained NFA is already large, it has $102$ states.}
 %
-which precisely corresponds to the first three steps of the sample DFA run above. 
+%In our new construction, the counting is kept \emph{implicit} using symbolic
+%counters.
+%%
+%Instead of modifying the counter bound of the derivative (by, e.g., deriving
+%$\regex{\DOT\{99\}}$ from $\regex{\DOT\{100\}}$), we keep the original bound unchanged
+%and use a counter $c$ to keep track of the difference between the original value
+%and the current value.
+%%
+%Our \emph{conditional derivative} operator $\CD{\alpha}{\cdot}$ then equips the
+%produced derivatives with \emph{conditional counter updates} to keep the
+%counters up-to-date.
+%%
+%For instance, $\CD{\regex a}{\regex{\DOT\{100\}}}$ returns the same regex
+%$\regex{\DOT\{100\}}$, but it is paired with conditional counter updates for~$c$,
+%namely, ``if $c < 100$, then increment $c$; and if $c \geq 100$, then exit the
+%counting loop''.
+%%
+%The CA we obtain this way is shown in \cref{fig:ak:nondet}, where the first
+%conditional update translates to the self loop on the state $\regex{\DOT\{100\}}$
+%and the second to the acceptance condition.
+%%
+%\mbox{The size of the CA does not depend on the counter bounds.}
+%%
 %
-Namely, the control states are kept in the first component
-and the counter values are in the second component, i.e.,
-the set $S_c$ represented by the run-time values of~$c$.
 %
-The second is not relevant for the states where the counter is never active
- (always~$0$; in this case $q$).
-%
-The implicit value $0$ of $c$ in~$q$ is not
-recorded in the counting sets.
-
-We note that some DFA powerstates cannot be encoded as CsA configurations due to
-the involved Cartesian abstraction: essentially, any state in the powerset is
-paired with any counter value from the counting set.
-%
-Hence, our approach does not handle the full class of regexes.
-%
-Fortunately, as our empirical evidence shows, regexes that fall out from the
-supported class are rare in practice.
-
-%------------------------------------------------------------------------------
-\paragraph{From Regexes to Nondeterministic CAs}
-%------------------------------------------------------------------------------
-
-To translate a regex into a CA, we propose a~generalization of the Antimirov's
-derivative construction \cite{Antimirov96_partderivatives} to symbolic counting.
-%
-In Antimirov's setting, a~derivative of a regex~$R$ wrt a character class
-$\alpha$ is a set of regexes that together capture all tails of words in
-$\langof R$ whose head character is from $\alpha$. 
-%
-In particular, according to \cite{VSXW19}, which
-generalizes~\cite{Antimirov96_partderivatives} to \emph{explicit} counting, the derivatives
-of the regex $R = \regex{\DOT*a\DOT\{100\}}$ wrt the classes $\regex{a}$ and
-$\notacl$ are $\{R,\regex{\DOT\{100\}}\}$ and $\{R\}$, respectively.
-%
-Further, for $1\leq k \leq 100$, the derivative of \regex{\DOT\{$k$\}} wrt both
-\regex{a} and $\notacl$ is $\{ \regex{\DOT\{}k-1\regex{\}}\}$.
-%
-The derivatives become the states of the resulting NFA, with $R$ being
-initial and $\regex{\DOT\{0\}}$ final, and with $\alpha$-transitions from each
-regex to all its $\alpha$-derivatives \mbox{(for $\alpha$ being either $\regex{a}$ or
-$\notacl$).
-%
-The obtained NFA is already large, it has $102$ states.}
-
-In our new construction, the counting is kept \emph{implicit} using symbolic
-counters.
-%
-Instead of modifying the counter bound of the derivative (by, e.g., deriving
-$\regex{\DOT\{99\}}$ from $\regex{\DOT\{100\}}$), we keep the original bound unchanged
-and use a counter $c$ to keep track of the difference between the original value
-and the current value.
-%
-Our \emph{conditional derivative} operator $\CD{\alpha}{\cdot}$ then equips the
-produced derivatives with \emph{conditional counter updates} to keep the
-counters up-to-date.
-%
-For instance, $\CD{\regex a}{\regex{\DOT\{100\}}}$ returns the same regex
-$\regex{\DOT\{100\}}$, but it is paired with conditional counter updates for~$c$,
-namely, ``if $c < 100$, then increment $c$; and if $c \geq 100$, then exit the
-counting loop''.
-%
-The CA we obtain this way is shown in \cref{fig:ak:nondet}, where the first
-conditional update translates to the self loop on the state $\regex{\DOT\{100\}}$
-and the second to the acceptance condition.
-%
-\mbox{The size of the CA does not depend on the counter bounds.}
-%
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\vspace{-4.0mm}
 \section{Preliminaries}\label{sec:prelims}
@@ -1021,6 +1036,7 @@ $\move{q}{\alpha}{r}$.
 A \emph{run of $\aut$ from a state $p_0$} over a word $a_1\cdots a_n$ is a
 sequence of transitions $(\move {p_{i-1}} {\alpha_i} {p_i})_{i=1}^n$ with
 $a_i\in\den{\alpha_i}$; the run is \emph{accepting} if $p_n\in F$.
+%
 %The \emph{language of $\aut$ from a state $q$}, denoted $\Lq[\aut]{q}$, is
 The \emph{language of a state $q$}, denoted $\Lq[\aut]{q}$, is
 the set of words over which $\aut$ has an accepting run from $q$.  The
@@ -1034,7 +1050,12 @@ $\aut$~is \emph{deterministic} iff for all $p\in Q$ and all
 transitions $\move p \alpha q$ and $\move p {\alpha'} r$, \mbox{it holds that if
 $\alpha\land\alpha'$ is satisfiable, then $q=r$.}
 
-%\vspace{-1mm}
+\vspace{-1mm}
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Counting Automata}\label{sec:CA}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1197,12 +1218,12 @@ That is, different character guards do not overlap and can be mostly treated as 
 We also require that all guards are satisfiable.
 CAs constructed from regexes by the algorithm in \cref{sec:regexes} will be simple.  
 
-\begin{ex} \cref{fig:ak:nondet} shows a CA in an intuitive notation, with the
-initial state $q$ and final conditions $F(q) = \bot, F(s) = \ExitOp[c]$, where
-$\MIN{c} = \MAX{c} = 100$. The same notation is used in \cref{fig:dot9star}.
-\cref{fig:detsample:CA} shows a CA in a notation following the
-formal development more closely.
-\end{ex}
+%\begin{ex} \cref{fig:ak:nondet} shows a CA in an intuitive notation, with the
+%initial state $q$ and final conditions $F(q) = \bot, F(s) = \ExitOp[c]$, where
+%$\MIN{c} = \MAX{c} = 100$. The same notation is used in \cref{fig:dot9star}.
+%\cref{fig:detsample:CA} shows a CA in a notation following the
+%formal development more closely.
+%\end{ex}
 
 %\vspace{-4mm}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2216,7 +2237,7 @@ by virtue of minterms.
   \begin{center}
     \includegraphics[height=4.6cm,keepaspectratio]{figures/detsample_TB.pdf}
   \end{center}
-  \caption{The CA for \texttt{\DOT*a\DOT{\leftbrace}4,8{\rightbrace}a}}
+%  \caption{The CA for \texttt{\DOT*a\DOT{\leftbrace}4,8{\rightbrace}a}}
   \label{fig:detsample:CA}
   \end{subfigure}
   \hspace{2mm}
@@ -2337,288 +2358,414 @@ $\pstateof{(\{q_0,q_1\},c\in\{0,1\})}  = \{(q_0,c=0),(q_1,c=0),(q_1,c=1)\}$
 value 0 there).  
 \end{ex}
 
-%==============================================================================
-\subsection{Uniformity: A Sufficient Semantic Correctness Criterion}\label{sec:correctness}
-%==============================================================================
-
-Given a {\CA} $A$, we produce a {\CSA} $\CS{A}$ that may overapproximate $A$ in
-terms of the language. 
-%
-We explain how this may happen and present conditions under which the language
-stays unchanged.
-%
-In particular, the overapproximation is caused by non-Cartesian powerstates of
-$\DFAof{A}$. 
-%
-(Recall that, in a Cartesian powerstate, states in the scope of a counter must
-appear with the same set of values of that counter.)
-%
-A configuration of the CsA cannot encode a non-Cartesian powerstate precisely,
-it can only overapproximate it. 
-%
-A larger powerstate may then accept a larger language.
-
-\begin{exnoqed}
-\label{ex:noncartesian}
-% Take the regex $R = \regex{(a|aa)\{5\}}$ and the $\CA(R)$
-\!Take $R = \regex{(a|aa)\{5\}}$ and the $\CA(R)$ shown
-in \cref{fig:aoraafive}.
-% this LaTeX hackery is disgusting, fragile, and frowned upon, but might get the
-% job done
-{\makeatletter
-\let\par\@@par
-\par\parshape0
-\everypar{}
-\begin{wrapfigure}[10]{r}{39mm}
-        \vspace*{-7mm}
-        {\includegraphics[width=3.7cm,trim=30 220 0 220,clip]{figures/aoraafive.pdf}}
-        \vspace*{-3mm}
-        \caption{$\mathit{CA}(\regex{(a|aa)\{5\}})$.\label{fig:aoraafive}}
-\end{wrapfigure}
-\noindent   
-After reading the word $aa$, $\DFAof{\CA(R)}$
-reaches the powerstate $\{(q_0,c=1),(q_0,c=2),(q_1,c=2)\}$,
-which is not Cartesian because both states are in the scope of the counter $c$
-but are paired with different counter values. Our CsA would reach the
-configuration $(\{q_0,q_1\},c\in\{0,1,2\})$, which encodes the larger powerstate
-$\{(q_0,c=0),(q_0,c=1),(q_0,c=2),(q_1,c=0),(q_1,c=1),(q_1,c=2)\}$ 
-where both states appear with both counter values.
-\qed
-\par}%
-\end{exnoqed}
-
-\cbstart
-%------------------------------------------------------------------------------
-\paragraph{Uniformity}
-%------------------------------------------------------------------------------
-
-We now introduce the so-called \emph{uniformity} of a CA as a property under
-which determinization preserves the language.
-%
-Uniformity prevents creation of non-Cartesian powerstates. 
-%
-It includes two conditions.
-
-The first condition prevents the kind of scenario from \cref{ex:noncartesian}.
-%
-For each DFA transition $\tau'$, it requires that every CA state $q$ that is in
-the scope of some counter $c$ within the DFA state to which $\tau'$ leads
-receives the same set of values of $c$. 
-%
-This requires testing whether the sets of transitions covered by $\tau'$ and
-incoming to every such CA state $q$ induce the same CsA operations~for~$c$. 
-
-The second condition prohibits two counters from being active at once, a
-scenario which arises from regexes with nested counting. 
-%
-Indeed, the relation between values of two simultaneously active counters may
-easily become more intricate than what can be expressed by a Cartesian product
-of two sets (consider, e.g., the regex $a?(a\{1\}a)\{2\}$ and the word $aaa$).
-%
-The condition requires testing that no state appears in the scope of two
-counters. 
 
 
-Formally, given a CsA transition $\tau' =
-\move{S}{\prodp{\alpha}{\beta},\CS{f}}{T}$, a~counter $c$, and a~CA state $q \in \scope(c)$,
-we define the set $\CS{f}_q(c)$ of \emph{incoming CsA operations} for $c$
-induced by the incoming transitions of $q$ from which $\tau'$ is built
-($\alpha$-transitions consistent with $\beta$ originating in $S$) as follows: 
-$$
-\CS{f}_q(c) \eqdef\{\textit{op}(\tau,c)\mid
-\tau\in 
-%\consistent(c) 
-\Delta_{S,\alpha, \beta(c)}
-\land \text{the target of $\tau$ is $q$}\} \ .
-$$
-We call the transition $\tau'$ \emph{uniform} iff, for each counter $c\in C$,
-any two states $q,r\in \scope(c)\cap T$ have the same sets of incoming CsA operations, i.e., $\CS{f}_q(c) = \CS{f}_r(c)$. 
-%
-The~\CA $\aut$ is then \emph{uniform} if all transitions of $\CS \aut$ are
-uniform and if no state of $A$ appears in the scope of two counters.
 
-\begin{theorem}
-  \label{thm:inv}
-  If a~\CA~$\aut$ is uniform, then 
-   $\langof{A}=\langof{\CS{A}}$.
-\end{theorem}
-\begin{proof}[Proof (idea)]
-  By showing bisimilarity between states $q$ of $\NFAof{\CS{A}}$, i.e.,
-  configurations of the CsA~$\CS{A}$ and powerstates $\pstateof q$ of $\DFAof{A}$. 
-\end{proof}
 
-Uniformity can be checked on the fly, while constructing $\CS{\aut}$. 
-%
-It is also automatically implied when the \CA is constructed from certain
-classes of regexes, as discussed below.
-\cbend
 
-%==============================================================================
-\subsection{Syntactic Correctness Criteria}\label{sec:syntcorrectness}
-%==============================================================================
-%\vspace{-0.5mm}
 
-Uniformity is only a~semantic property.
-%
-Below, we show examples of actual regexes that do and do not lead to uniform CAs
-and discuss some simple syntactic classes of regexes that imply uniformity.
-%
-A~detailed study of syntactic classes of regexes that guarantee uniformity is,
-however, beyond the scope of this paper and a~part of our future work. 
-
-The regexes that induce non-uniform CAs are often those where, intuitively,
-there is a position in some input text that may either be matched against the first
-character of a counted sub-expression or against some inner character of the
-same sub-expression.
-In such a~situation, there may be two runs of the induced CA: one that
-increments the associated counter (the increment happens) at that position and
-moves to some state~$q$, and the other that leaves the counter as it is, while
-in its scope, and moves into a different state~$r$. 
-The counter value then depends on the state: it is different in~$q$ and in~$r$.
-The corresponding DFA state is then non-Cartesian and the CA is non-uniform.
-
-%\vspace{-1mm}
-\begin{example}
-We present several commented examples of regexes with non-uniform CAs
-where our determinization overapproximates the language of the obtained CsA.
-\begin{itemize}
-\item 
-\regex{(a|ab|ba)\{5\}} --- the string $aba$ could be matched as~``\regex{a}''
-    followed by~``\regex{ba}'', having incremented the counter twice, or as
-    ``\regex{ab}'' that is followed by the prefix~``\regex{a}''
-    of~``\regex{ab}'', having incremented the counter once only.
-\item 
-\regex{a\{1,3\}a\{3\}} --- this case can be explained similarly as the previous
-one. Alternatively, note that, assuming that our translation to a CA produces
-two counters, say $c_1$ and $c_2$, then after reading $n$ letters $a$, the CA needs to remember that $c_1 + c_2 = n$. Such non-trivial relations between counter values are not Cartesian.
-\item
-\regex{\DOT*(aa)\{6\}} --- assuming a sequence of $a$'s on the input, the
-    counter may be either incremented on odd characters and left unchanged on
-    even ones, or the other way around.
-    As the counter values depend on the position within the ``\regex{aa}'' (and
-    hence on the CA state), the CA cannot be uniform. 
-Note that the prefix $\regex{\DOT*}$ is quite usual as it corresponds to searching
-for the regex $\regex{(aa)\{6\}}$ anywhere in the input string. 
-\item 
-\regex{\DOT*(a\{2\})\{2\}} --- after reading $aa$, if the value of the outer
-    counter is $1$, then the value of the inner counter must be $0$. This is a
-    non-trivial relation between the values of the two counters, which is not Cartesian.
-Nested counting is often problematic, however, many of such examples may still be solved quite efficiently by unfolding one of the counters.
-\qed
-\end{itemize}
-\end{example}
-
-%\vspace{-2mm}
-\paragraph{Syntactic classes of regexes that guarantee uniformity.}
-A simple class of regexes that guarantees uniformity is a generalization of the class of \emph{monadic} regexes of \cite{aplas19} (where
-counting is allowed over character classes only).
-%
-%Namely, the property required is that counting loops are of the form
-Namely, it includes regexes with counting loops of the form
-%\vspace{-0.5mm}
-$$
-\text{$(\alpha_1\ldots\alpha_n)\{\ell,k\}$ s.t. $\semof{\alpha_1}$ is disjoint from
-every $\semof{\alpha_i},1<i\leq n$.} 
-%\vspace{-0.5mm}
-$$
-%
-Intuitively, the disjointness with $\alpha_1$ ensures that the generated CA will
-only be able to process $\alpha_1$ through an increment transition at the
-beginning of a new iteration of the loop, with no possibility of having a
-conflicting $\NoOp$ transition that could read the same symbol inside the body
-of the loop (which is exactly what happens with the second symbol $a$ in
-\cref{ex:noncartesian}). The CsA compiled form this class are also guaranteed to be fast.
-
-%Nonetheless, the class of regexes where our determinisation preserves the language seems to be much
-%larger.
-%%
-%For instance, it includes the regexes \regex{((aa)|(bb))*aa((aa)|(bb))\{$k$\}} and
-%\regex{\DOT*((Natasha)|(Yurij)|(banza\{8\}j!))\{5\}}, despite that the
-%latter even uses nested counting.
-
-\newcommand{\plotfigure}[0]{
-\begin{figure}[t]
-\begin{subfigure}[b]{0.47\linewidth}
-\hspace*{-2mm}
-\includegraphics[width=6.7cm,keepaspectratio]{figures/re2g-vs-cad.pdf}\\
-\vspace*{-6mm}
-\caption{The comparison of running times of \catool and \retwo on our benchmark
-set (\catool wins: 287/1,789)}
-\label{fig:ca-vs-re2}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.47\linewidth}
-\hspace*{-6mm}
-\includegraphics[width=6.7cm,keepaspectratio]{figures/big_plot-1000.pdf}\\
-\vspace*{-6mm}
-\caption{Running times of the tools on the regex ``\regex{(\_a )\{$k$\}\_a}''
-where~$k$ is a~parameter}
-\label{fig:increase}
-\end{subfigure}\\
-
-\newlength{\triplepiclen}
-\setlength{\triplepiclen}{4.5cm}
-\begin{subfigure}[b]{\linewidth}
+ \begin{figure}[t]
+%\vspace{-3mm}
 \begin{center}
-  \begin{minipage}{\triplepiclen}
-  \begin{center}
-    \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/grep-vs-cad.pdf}\\
-    \hspace*{5mm}
-    (\catool wins: 862/1,425)
-  \end{center}
-  \end{minipage}
-  \begin{minipage}{\triplepiclen}
-  \begin{center}
-  \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/dotnet-vs-cad.pdf}\\
-    \hspace*{5mm}
-    (\catool wins: 708/1,789)
-  \end{center}
-  \end{minipage}
-  \begin{minipage}{\triplepiclen}
-  \begin{center}
-  \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/srm-vs-cad.pdf}\\
-    \hspace*{5mm}
-    (\catool wins: 345/1,789)
-  \end{center}
-  \end{minipage}
+\begin{algorithm}[H]
+\caption{DFA-based space search}
+\label{algo:basic}
+\KwIn{A DFA $\aut =(\II,Q,q_0,F,\Delta)$.}
+\KwOut{an ouptut string $string$.} 
+    $unvisited \leftarrow \{q_0\}$\;
+    $visited \leftarrow \emptyset$\;
+    $str \leftarrow \epsilon$\;
+    $successors:=\{ (q_0\mapsto q_0)\}$\;
+    \While{$unvisited \neq \emptyset$}{
+    $q \leftarrow ChooseBest (unvisited)$\;
+    $str\leftarrow str \cdot Prefix(q, successors)$\;
+    
+    \While{$not (timeout)$}{
+    $T\leftarrow\{(q, \alpha, r)\in \Delta | r \not \in F\}$\;
+    \lIf{$T == \emptyset$}{break}
+    \Else{
+ 	   	$(q', \alpha', r') \leftarrow SelectBest(T)$\;
+ 	   	remove $(q', \alpha', r')$ from $T$\;
+   	 	$unvisited\leftarrow unvisited \cup \{r | (q, \alpha, r) \in T\}$\;
+    		$visited \leftarrow visited \cup \{r'\}$\;
+   	 	$successors\leftarrow successors\cup \{(q\mapsto r')\}$\;
+   		$q\leftarrow r'$\;
+    		$str \leftarrow str \cdot ChooseSymbol(\alpha)$\;}
+    		
+    	$str \leftarrow str \cdot newline$\;} }
+    
+      \label{ln:ret}
+\end{algorithm}		
 \end{center}
-\caption{The comparison of running times of \catool with \grep, \dotnet, and \srm on our benchmark set}
-\label{fig:ca-vs-tools}
-\end{subfigure}
-
-\vspace*{-1mm}
-\caption{Graphs with results of our experiments.
-  Note that, in~(\subref{fig:ca-vs-re2}) and~(\subref{fig:ca-vs-tools}), the axes
-  are logarithmic, the dashed lines denote the timeout (600\,s), and
-  the data points between the dashed lines and the edge of a plot represent
-  benchmarks where the tool did not run successfully.
-  We also
-  provide the number of times \catool won.
-}
-\label{fig:graphs}
-\vspace{-3mm}
+\vspace*{-7mm}
 \end{figure}
-}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Generating Eval Text}\label{sec:genText}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section, we explain the algorithm for generating an eval text. The algorithm searches for optimal runs $\pi_i$ in a search space of the underlying automaton $\aut$. The optimal run is the shortest run $\pi$ such that:
+
+\begin{itemize}
+ \item starts in the initial state $q_0$;
+\item explores as many unvisited states as possible;
+\item finishes in a state such that:
+   \begin{itemize}
+     \item is rejected by $\aut$, and
+	\item all its successors are either final states, or visited states.
+      \end{itemize}
+ \end{itemize}
+
+To gain the intuition how the text is generated, let's have a deterministic automaton $\aut$. 
+%
+The output will be lines of text such that each line corresponds to the labels of the run $\pi_i$.
+%
+We start in the initial state of $\aut$ $q_0$ since most of the matchers usually use optimization which allow them to skip a no-matching part of the input text.
+%
+
+We iterate over the transition leading from the initial state $q_0$ and choose the best successors according to the given criteria. 
+%
+We skip states that are not final. 
+%
+The reason behind this is that most of the backtracking tools try to find the match and if they do not succeed 
+%
+they conduct a backtracking search to find whether there exists any other path that matches the given input string.
+%
+
+%
+The next requirement for the successor it that it is not already visited since our goal is 
+%
+to explore the whole state space of the automaton $A$ as possible.
+%
+Computing a DFA-state successor over a symbol is expensive, linear to the size of the NFA.
+%
+Therefore, the modern matchers use caching of already visited parts of the DFA. 
+%
+If we will keep exploring new states we can slow them down.
+
+%
+In each iteration, using a transition we generate a new state.
+%
+The minterm on the transition is used for generating the output character. 
+%
+We use a function $ChooseSymbol$ which choose a random member at random from the set.
+%
+
+We keep exploring the state space till we found a state such all its successors are either final states or already visited states.
+%
+In this case, we add a new line to the output string and start generating a new line of code.
+%
+
+The starting state of the new iteration is a state from the unvisited (already discovered) states. 
+%
+The unvisited state are on the edge of the part of the state space that has been not visited yet. 
+%
+So to explore the state space it is useful to use them to continue in discovering new states.
+%
+Moreover, we keep the successors of all the states so that we can easily find a prefix
+%
+which leads from the initial state $q_0$ to the state $q$ 
+%
+and hence we speed up the process of generating the output text.
+
+The process finishes once we explore the whole state space, or when the timeout expires.
+  
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Using Counting-Set Automata for Generating the Eval Text}\label{sec:genText}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In the previous section, we introduce a general algorithm for generating an evil text which has potential to cause ReDoS attack for most of the matchers. 
+%
+However, to create more efficient method we use counting-set automata.
+%
+The key feature of the automata is enconding the 
+
+
+%%==============================================================================
+%%\subsection{Uniformity: A Sufficient Semantic Correctness Criterion}\label{sec:correctness}
+%%%==============================================================================
+%%
+%Given a {\CA} $A$, we produce a {\CSA} $\CS{A}$ that may overapproximate $A$ in
+%terms of the language. 
+%%
+%We explain how this may happen and present conditions under which the language
+%stays unchanged.
+%%
+%In particular, the overapproximation is caused by non-Cartesian powerstates of
+%$\DFAof{A}$. 
+%%
+%(Recall that, in a Cartesian powerstate, states in the scope of a counter must
+%appear with the same set of values of that counter.)
+%%
+%A configuration of the CsA cannot encode a non-Cartesian powerstate precisely,
+%it can only overapproximate it. 
+%%
+%A larger powerstate may then accept a larger language.
+%
+%\begin{exnoqed}
+%\label{ex:noncartesian}
+%% Take the regex $R = \regex{(a|aa)\{5\}}$ and the $\CA(R)$
+%\!Take $R = \regex{(a|aa)\{5\}}$ and the $\CA(R)$ shown
+%in \cref{fig:aoraafive}.
+%% this LaTeX hackery is disgusting, fragile, and frowned upon, but might get the
+%% job done
+%{\makeatletter
+%\let\par\@@par
+%\par\parshape0
+%\everypar{}
+%\begin{wrapfigure}[10]{r}{39mm}
+%        \vspace*{-7mm}
+%        {\includegraphics[width=3.7cm,trim=30 220 0 220,clip]{figures/aoraafive.pdf}}
+%        \vspace*{-3mm}
+%        \caption{$\mathit{CA}(\regex{(a|aa)\{5\}})$.\label{fig:aoraafive}}
+%\end{wrapfigure}
+%\noindent   
+%After reading the word $aa$, $\DFAof{\CA(R)}$
+%reaches the powerstate $\{(q_0,c=1),(q_0,c=2),(q_1,c=2)\}$,
+%which is not Cartesian because both states are in the scope of the counter $c$
+%but are paired with different counter values. Our CsA would reach the
+%configuration $(\{q_0,q_1\},c\in\{0,1,2\})$, which encodes the larger powerstate
+%$\{(q_0,c=0),(q_0,c=1),(q_0,c=2),(q_1,c=0),(q_1,c=1),(q_1,c=2)\}$ 
+%where both states appear with both counter values.
+%\qed
+%\par}%
+%\end{exnoqed}
+%
+%\cbstart
+%%------------------------------------------------------------------------------
+%\paragraph{Uniformity}
+%%------------------------------------------------------------------------------
+%
+%We now introduce the so-called \emph{uniformity} of a CA as a property under
+%which determinization preserves the language.
+%%
+%Uniformity prevents creation of non-Cartesian powerstates. 
+%%
+%It includes two conditions.
+%
+%The first condition prevents the kind of scenario from \cref{ex:noncartesian}.
+%%
+%For each DFA transition $\tau'$, it requires that every CA state $q$ that is in
+%the scope of some counter $c$ within the DFA state to which $\tau'$ leads
+%receives the same set of values of $c$. 
+%%
+%This requires testing whether the sets of transitions covered by $\tau'$ and
+%incoming to every such CA state $q$ induce the same CsA operations~for~$c$. 
+%
+%The second condition prohibits two counters from being active at once, a
+%scenario which arises from regexes with nested counting. 
+%%
+%Indeed, the relation between values of two simultaneously active counters may
+%easily become more intricate than what can be expressed by a Cartesian product
+%of two sets (consider, e.g., the regex $a?(a\{1\}a)\{2\}$ and the word $aaa$).
+%%
+%The condition requires testing that no state appears in the scope of two
+%counters. 
+%
+%
+%Formally, given a CsA transition $\tau' =
+%\move{S}{\prodp{\alpha}{\beta},\CS{f}}{T}$, a~counter $c$, and a~CA state $q \in \scope(c)$,
+%we define the set $\CS{f}_q(c)$ of \emph{incoming CsA operations} for $c$
+%induced by the incoming transitions of $q$ from which $\tau'$ is built
+%($\alpha$-transitions consistent with $\beta$ originating in $S$) as follows: 
+%$$
+%\CS{f}_q(c) \eqdef\{\textit{op}(\tau,c)\mid
+%\tau\in 
+%%\consistent(c) 
+%\Delta_{S,\alpha, \beta(c)}
+%\land \text{the target of $\tau$ is $q$}\} \ .
+%$$
+%We call the transition $\tau'$ \emph{uniform} iff, for each counter $c\in C$,
+%any two states $q,r\in \scope(c)\cap T$ have the same sets of incoming CsA operations, i.e., $\CS{f}_q(c) = \CS{f}_r(c)$. 
+%%
+%The~\CA $\aut$ is then \emph{uniform} if all transitions of $\CS \aut$ are
+%uniform and if no state of $A$ appears in the scope of two counters.
+%
+%\begin{theorem}
+%  \label{thm:inv}
+%  If a~\CA~$\aut$ is uniform, then 
+%   $\langof{A}=\langof{\CS{A}}$.
+%\end{theorem}
+%\begin{proof}[Proof (idea)]
+%  By showing bisimilarity between states $q$ of $\NFAof{\CS{A}}$, i.e.,
+%  configurations of the CsA~$\CS{A}$ and powerstates $\pstateof q$ of $\DFAof{A}$. 
+%\end{proof}
+%
+%Uniformity can be checked on the fly, while constructing $\CS{\aut}$. 
+%%
+%It is also automatically implied when the \CA is constructed from certain
+%classes of regexes, as discussed below.
+%\cbend
+%
+%%==============================================================================
+%\subsection{Syntactic Correctness Criteria}\label{sec:syntcorrectness}
+%%==============================================================================
+%%\vspace{-0.5mm}
+%
+%Uniformity is only a~semantic property.
+%%
+%Below, we show examples of actual regexes that do and do not lead to uniform CAs
+%and discuss some simple syntactic classes of regexes that imply uniformity.
+%%
+%A~detailed study of syntactic classes of regexes that guarantee uniformity is,
+%however, beyond the scope of this paper and a~part of our future work. 
+%
+%The regexes that induce non-uniform CAs are often those where, intuitively,
+%there is a position in some input text that may either be matched against the first
+%character of a counted sub-expression or against some inner character of the
+%same sub-expression.
+%In such a~situation, there may be two runs of the induced CA: one that
+%increments the associated counter (the increment happens) at that position and
+%moves to some state~$q$, and the other that leaves the counter as it is, while
+%in its scope, and moves into a different state~$r$. 
+%The counter value then depends on the state: it is different in~$q$ and in~$r$.
+%The corresponding DFA state is then non-Cartesian and the CA is non-uniform.
+%
+%%\vspace{-1mm}
+%\begin{example}
+%We present several commented examples of regexes with non-uniform CAs
+%where our determinization overapproximates the language of the obtained CsA.
+%\begin{itemize}
+%\item 
+%\regex{(a|ab|ba)\{5\}} --- the string $aba$ could be matched as~``\regex{a}''
+%    followed by~``\regex{ba}'', having incremented the counter twice, or as
+%    ``\regex{ab}'' that is followed by the prefix~``\regex{a}''
+%    of~``\regex{ab}'', having incremented the counter once only.
+%\item 
+%\regex{a\{1,3\}a\{3\}} --- this case can be explained similarly as the previous
+%one. Alternatively, note that, assuming that our translation to a CA produces
+%two counters, say $c_1$ and $c_2$, then after reading $n$ letters $a$, the CA needs to remember that $c_1 + c_2 = n$. Such non-trivial relations between counter values are not Cartesian.
+%\item
+%\regex{\DOT*(aa)\{6\}} --- assuming a sequence of $a$'s on the input, the
+%    counter may be either incremented on odd characters and left unchanged on
+%    even ones, or the other way around.
+%    As the counter values depend on the position within the ``\regex{aa}'' (and
+%    hence on the CA state), the CA cannot be uniform. 
+%Note that the prefix $\regex{\DOT*}$ is quite usual as it corresponds to searching
+%for the regex $\regex{(aa)\{6\}}$ anywhere in the input string. 
+%\item 
+%\regex{\DOT*(a\{2\})\{2\}} --- after reading $aa$, if the value of the outer
+%    counter is $1$, then the value of the inner counter must be $0$. This is a
+%    non-trivial relation between the values of the two counters, which is not Cartesian.
+%Nested counting is often problematic, however, many of such examples may still be solved quite efficiently by unfolding one of the counters.
+%\qed
+%\end{itemize}
+%\end{example}
+%
+%%\vspace{-2mm}
+%\paragraph{Syntactic classes of regexes that guarantee uniformity.}
+%A simple class of regexes that guarantees uniformity is a generalization of the class of \emph{monadic} regexes of \cite{aplas19} (where
+%counting is allowed over character classes only).
+%%
+%%Namely, the property required is that counting loops are of the form
+%Namely, it includes regexes with counting loops of the form
+%%\vspace{-0.5mm}
+%$$
+%\text{$(\alpha_1\ldots\alpha_n)\{\ell,k\}$ s.t. $\semof{\alpha_1}$ is disjoint from
+%every $\semof{\alpha_i},1<i\leq n$.} 
+%%\vspace{-0.5mm}
+%$$
+%%
+%Intuitively, the disjointness with $\alpha_1$ ensures that the generated CA will
+%only be able to process $\alpha_1$ through an increment transition at the
+%beginning of a new iteration of the loop, with no possibility of having a
+%conflicting $\NoOp$ transition that could read the same symbol inside the body
+%of the loop (which is exactly what happens with the second symbol $a$ in
+%\cref{ex:noncartesian}). The CsA compiled form this class are also guaranteed to be fast.
+%
+%%Nonetheless, the class of regexes where our determinisation preserves the language seems to be much
+%%larger.
+%%%
+%%For instance, it includes the regexes \regex{((aa)|(bb))*aa((aa)|(bb))\{$k$\}} and
+%%\regex{\DOT*((Natasha)|(Yurij)|(banza\{8\}j!))\{5\}}, despite that the
+%%latter even uses nested counting.
+%
+%\newcommand{\plotfigure}[0]{
+%\begin{figure}[t]
+%\begin{subfigure}[b]{0.47\linewidth}
+%\hspace*{-2mm}
+%\includegraphics[width=6.7cm,keepaspectratio]{figures/re2g-vs-cad.pdf}\\
+%\vspace*{-6mm}
+%\caption{The comparison of running times of \catool and \retwo on our benchmark
+%set (\catool wins: 287/1,789)}
+%\label{fig:ca-vs-re2}
+%\end{subfigure}
+%\hfill
+%\begin{subfigure}[b]{0.47\linewidth}
+%\hspace*{-6mm}
+%\includegraphics[width=6.7cm,keepaspectratio]{figures/big_plot-1000.pdf}\\
+%\vspace*{-6mm}
+%\caption{Running times of the tools on the regex ``\regex{(\_a )\{$k$\}\_a}''
+%where~$k$ is a~parameter}
+%\label{fig:increase}
+%\end{subfigure}\\
+%
+%\newlength{\triplepiclen}
+%\setlength{\triplepiclen}{4.5cm}
+%\begin{subfigure}[b]{\linewidth}
+%\begin{center}
+%  \begin{minipage}{\triplepiclen}
+%  \begin{center}
+%    \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/grep-vs-cad.pdf}\\
+%    \hspace*{5mm}
+%    (\catool wins: 862/1,425)
+%  \end{center}
+%  \end{minipage}
+%  \begin{minipage}{\triplepiclen}
+%  \begin{center}
+%  \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/dotnet-vs-cad.pdf}\\
+%    \hspace*{5mm}
+%    (\catool wins: 708/1,789)
+%  \end{center}
+%  \end{minipage}
+%  \begin{minipage}{\triplepiclen}
+%  \begin{center}
+%  \includegraphics[width=1\triplepiclen,keepaspectratio]{figures/srm-vs-cad.pdf}\\
+%    \hspace*{5mm}
+%    (\catool wins: 345/1,789)
+%  \end{center}
+%  \end{minipage}
+%\end{center}
+%\caption{The comparison of running times of \catool with \grep, \dotnet, and \srm on our benchmark set}
+%\label{fig:ca-vs-tools}
+%\end{subfigure}
+%
+%\vspace*{-1mm}
+%\caption{Graphs with results of our experiments.
+%  Note that, in~(\subref{fig:ca-vs-re2}) and~(\subref{fig:ca-vs-tools}), the axes
+%  are logarithmic, the dashed lines denote the timeout (600\,s), and
+%  the data points between the dashed lines and the edge of a plot represent
+%  benchmarks where the tool did not run successfully.
+%  We also
+%  provide the number of times \catool won.
+%}
+%\label{fig:graphs}
+%\vspace{-3mm}
+%\end{figure}
+%}
+%
 
 %\vspace{-1mm}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Experimental Evaluation}\label{sec:experiments}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\vspace{-0.5mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace{-0.5mm}
 
 We have implemented our approach in a C\#
 prototype called \catool
 available at~\blinded{\cite{chipmunk}}
-(see
-\ifTR
-\cref{sec:Implementation}
-\else
-\cite{OOPSLA20TR}
-\fi
-for details how to efficiently implement
-{\CSA}s)
-and evaluated its pattern matching capabilities against other
+%(see
+%\ifTR
+%\cref{sec:Implementation}
+%\else
+%\cite{OOPSLA20TR}
+%\fi
+%for details how to efficiently implement
+%{\CSA}s)
+and evaluated its capability of generating text causing 
+ against other
 state-of-the-art regex matchers on patterns that use the counting operator.
 We focused on comparison against
 Google's \retwo library~\cite{re2}%
@@ -2632,654 +2779,654 @@ the \dotnet standard library regex matcher from
 \texttt{System.Text.RegularExpressions}~\cite{dotnet}, and
 Symbolic Regex Matcher (\srm)~\cite{VSXW19}.
 
-Let us shortly summarize how the tools work.
-The main algorithms of
-\retwo and \grep implement optimized versions of the Thompson's on-the-fly
-determinization where the constructed DFA states are cached.
-The construction has a~bound on the size of the DFA---if the bound is reached,
-the so-far constructed DFA states are flushed to avoid consuming too much
-memory.
-In some situations when caching is found ineffectual, \retwo turns the caching
-off,
-and the performance can drop even lower 
- (see the description in~\cite{regexes-in-the-wild} for details).
-We note that \retwo rejects an input regex if it contains a~counting
-operator with a~bound bigger than 1,000.
+%Let us shortly summarize how the tools work.
+%The main algorithms of
+%\retwo and \grep implement optimized versions of the Thompson's on-the-fly
+%determinization where the constructed DFA states are cached.
+%The construction has a~bound on the size of the DFA---if the bound is reached,
+%the so-far constructed DFA states are flushed to avoid consuming too much
+%memory.
+%In some situations when caching is found ineffectual, \retwo turns the caching
+%off,
+%and the performance can drop even lower 
+% (see the description in~\cite{regexes-in-the-wild} for details).
+%We note that \retwo rejects an input regex if it contains a~counting
+%operator with a~bound bigger than 1,000.
+%%
+%\srm is based on \emph{symbolic derivatives} constructed on the fly, 
+%also in the spirit of the Thompson's algorithm, and, likewise, bases its efficiency
+%on caching
+%(in fact, \srm is quite close to an implementation of the Thompson's
+%algorithm over CAs with caching).
+%The~\dotnet matcher uses a~backtracking algorithm over NFAs, while
+%%
+%our \catool eagerly constructs a~deterministic CsA for the input regex.
+%%
+%The former four are mature tools, and especially \retwo and \grep contain many high- and low-level
+%optimizations, such as using the Boyer-Moore algorithm~\cite{BoyerM77} to skip
+%over many characters that are known to not be a~part of a~match.
+%%
+%\retwo and \grep are compiled programs while \catool, \srm, and
+%\dotnet run within the .NET Framework (therefore, they have some inherent
+%overhead due to the \emph{just-in-time} compilation at start-up and its
+%inability to use advanced code optimizations, as well as 
+%garbage collection). 
+%%
+%Note that even though the tools based on the on-the-fly subset construction (\retwo, \grep, and \srm) are linear to the lenght of the text, they still take space exponential to the counter bounds in the worst case, by creating sets of the size linear to the counter bounds, exponential to their decadic encoding used in the regex. 
 %
-\srm is based on \emph{symbolic derivatives} constructed on the fly, 
-also in the spirit of the Thompson's algorithm, and, likewise, bases its efficiency
-on caching
-(in fact, \srm is quite close to an implementation of the Thompson's
-algorithm over CAs with caching).
-The~\dotnet matcher uses a~backtracking algorithm over NFAs, while
+%We run our benchmarks on a~machine with the Intel(R) Xeon(R) CPU E3-1240 v3 @
+%3.40\,GHz running Debian GNU/Linux (we use the Mono
+%platform~\cite{mono} to run .NET~tools).
+%To avoid issues with generating exact matches,
+%which might differ for different tools,
+%the tools were run in the setting where they counted the number of lines
+%matching\footnote{%
+%We consider the standard semantics of ``matching'' used by \texttt{grep}, i.e.,
+%a~line matches a~regex~$R$ if it contains a~string that is in~$\langof R$, unless it
+%contains start-of-line (\texttt{\^}) or end-of-line (\texttt{\$}) anchors, in which
+%case the matched string needs to occur at the start and/or at the end of the
+%line respectively.
+%}
+%\mbox{the given regex (e.g.\ the \texttt{-c} flag of \grep).}
+
+
 %
-our \catool eagerly constructs a~deterministic CsA for the input regex.
+%\plotfigure
 %
-The former four are mature tools, and especially \retwo and \grep contain many high- and low-level
-optimizations, such as using the Boyer-Moore algorithm~\cite{BoyerM77} to skip
-over many characters that are known to not be a~part of a~match.
+%%*******************************************************************************
+%\vspace{-0.0mm}
+%\subsection{ReDoS Resiliency}\label{sec:exp_redos}
+%\vspace{-0.0mm}
+%%*******************************************************************************
+%Our main experiment focuses on the resilience of the matching engines
+%against ReDoS attacks.
+%The regexes used for this experiment were selected (1) from the database of over
+%500,000 real-world regexes coming
+%%
+%from an Internet-wide analysis of regexes collected from over 190,000 software
+%projects~\cite{DavisMCSL19}; 
+%(2) from databases of regexes used by \emph{network intrusion detection systems} 
+%(NIDSes), in particular, Snort~\cite{snort},
+%Bro~\cite{bro},
+%Sagan~\cite{sagan}, and the academic
+%papers~\cite{yang2010,tacas18-appred};
+%(4) the RegExLib database of regexes~\cite{regexlib}; and
+%(5) industrial regexes from~\cite{aplas19}, used for security purposes.
+%\mbox{From these, we created our set of benchmarks by the following steps:}
+%%
+%\begin{enumerate}[(1)]
+%  \item  We selected regexes that contained counting loops whose
+%    sum of upper bounds was larger than~20.
+%    This let us focus on regexes where the use of counting makes
+%    sense (there are surprisingly many regexes occurring in practice where the
+%    use of a~counting loop is unnecessary, e.g., regexes containing
+%    sub-expressions similar to \regex{a\{0,1\}} or even just \regex{a\{1\}}).
+%    Moreover, we also removed all except 26 regexes with counters bigger than
+%    1,000, which cannot be handled by \retwo.
+%    We left the 26 regexes as representatives of ``large'' counters.
+%    This left us with 5,000 regexes.
+%\cbstart
+%  \item  Then, we filtered out regexes~$R$ such that either $\CA(R)$ was not uniform 
+%   (i.e., the \CSA produced by our algorithm was not precise, cf. \cref{sec:correctness}), 
+%   or such that the $\CSA$ was not fast 
+%   (i.e. not all counting-set operators were constant-time, cf. \cref{sec:CsA}).
+%    After this step,
+%    a vast majority,
+%    4,429 
+%    of the regexes, remained. 
+%\cbend
+%  \item  For the regexes that remained, we used a~lightweight ReDoS generator designed to
+%    exploit counting (cf.~\cref{sec:redos_gen}) to generate $\sim$10\,MiB long
+%    input texts.
+%    In particular, we managed to generate ``adversarial'' input texts for
+%    1,789 
+%    regexes (for the rest of the regexes, either the underlying state space was
+%    too small, so the generator could not construct the text, or the generation hit the
+%    timeout of 600\,s).
+%    Our benchmark data set is available at~\cite{oopsla20-dataset}.
+%\end{enumerate}
+%%
+%We ran all tools on the generated benchmarks (counting the number of lines of
+%the input text matching the regex) and give scatter plots comparing the running
+%times of the tools in \cref{fig:ca-vs-re2} and \cref{fig:ca-vs-tools} (the
+%timeout was 600\,s).
+%On the bottom and the left-hand side of every plot, there are rug plots
+%illustrating the distribution of the data points.
+%Note that the axes are logarithmic, so the difference between data points grows
+%as these points are away from zero (in particular, differences of values
+%smaller than 1\,s are negligible).
+%The semantics of regexes supported by \grep differs from the one
+%supported by other tools, so we only considered the
+%cases when the number of matches was the same when comparing with \grep).
+%In the plots, the data points between the dashed lines and edges of the plots
+%represent errors, e.g. due to the regex being rejected (for counters $>$1,000 for
+%\retwo) or being interpreted using a different semantics (in the case of \grep).
 %
-\retwo and \grep are compiled programs while \catool, \srm, and
-\dotnet run within the .NET Framework (therefore, they have some inherent
-overhead due to the \emph{just-in-time} compilation at start-up and its
-inability to use advanced code optimizations, as well as 
-garbage collection). 
+%\begin{table}[t]
+%\footnotesize
+%% \vspace*{-7mm}
+%\caption{Statistics for the graphs in \cref{fig:graphs} (times are given in seconds).
+%For \catool, we provide several times:
+%``total'' is the total time,
+%``CA'' is the time for translating a regex into a (nondeterministic) CA,
+%``CsA'' is the time of determinization of the CA into a CsA, and
+%``match'' is the time spent when matching the input text.
+%}
+%\vspace*{-2.5mm}
+%\begin{center}
+%\input{stats.tex}
+%\end{center}
+%\label{tab:stats}
+%\vspace{-2.0mm}
+%\end{table}
 %
-Note that even though the tools based on the on-the-fly subset construction (\retwo, \grep, and \srm) are linear to the lenght of the text, they still take space exponential to the counter bounds in the worst case, by creating sets of the size linear to the counter bounds, exponential to their decadic encoding used in the regex. 
-
-We run our benchmarks on a~machine with the Intel(R) Xeon(R) CPU E3-1240 v3 @
-3.40\,GHz running Debian GNU/Linux (we use the Mono
-platform~\cite{mono} to run .NET~tools).
-To avoid issues with generating exact matches,
-which might differ for different tools,
-the tools were run in the setting where they counted the number of lines
-matching\footnote{%
-We consider the standard semantics of ``matching'' used by \texttt{grep}, i.e.,
-a~line matches a~regex~$R$ if it contains a~string that is in~$\langof R$, unless it
-contains start-of-line (\texttt{\^}) or end-of-line (\texttt{\$}) anchors, in which
-case the matched string needs to occur at the start and/or at the end of the
-line respectively.
-}
-\mbox{the given regex (e.g.\ the \texttt{-c} flag of \grep).}
-
-
-
-\plotfigure
-
-%*******************************************************************************
-\vspace{-0.0mm}
-\subsection{ReDoS Resiliency}\label{sec:exp_redos}
-\vspace{-0.0mm}
-%*******************************************************************************
-Our main experiment focuses on the resilience of the matching engines
-against ReDoS attacks.
-The regexes used for this experiment were selected (1) from the database of over
-500,000 real-world regexes coming
+%In \cref{fig:ca-vs-re2}, we compare \catool with \retwo.
+%We wish to point out the following interesting observations.
+%Although \retwo wins more often  on the whole benchmark set 
+%(our prototype does not include the many
+%advanced optimizations present in \retwo),
+%there is
+%a~number of benchmarks (287)\ where its performance significantly deteriorates,
+%and \catool is faster.
+%In particular, there are 89 benchmarks where the time of \retwo is bigger than
+%10\,s, i.e., its speed drops below~1\,MiB/s (we consider this speed of
+%processing denotes a successful ReDoS attack, even though the limit may be
+%significantly larger in practice\footnote{%
+%  The required processing speed depends on the application.
+%  NIDSes performing deep packet inspection may require a line-processing speed of
+%  units or tens of GiB/s~\cite{tacas18-appred}, while application servers
+%  validating user inputs may suffice with units or tens of MiB/s.
+%}).
+%For \catool, the number of benchmarks that took over 10\,s was only~22; 
+%in fact, all except
+%3~benchmarks finished within 100\,s---the blow-up in these 3~benchmarks is not caused by the
+%counters but rather by many ``\regex{|}'' and ``\regex{?}'' operators, so over
+%70\,\% of the total time is spent by constructing the \CSA.
+%If~used, e.g.,\ in an NIDS, the \CSA would be created only once and then used
+%for matching giga-/terabytes of data, so the initial overhead could be neglected.
 %
-from an Internet-wide analysis of regexes collected from over 190,000 software
-projects~\cite{DavisMCSL19}; 
-(2) from databases of regexes used by \emph{network intrusion detection systems} 
-(NIDSes), in particular, Snort~\cite{snort},
-Bro~\cite{bro},
-Sagan~\cite{sagan}, and the academic
-papers~\cite{yang2010,tacas18-appred};
-(4) the RegExLib database of regexes~\cite{regexlib}; and
-(5) industrial regexes from~\cite{aplas19}, used for security purposes.
-\mbox{From these, we created our set of benchmarks by the following steps:}
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%%\enlargethispage{2mm}
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %
-\begin{enumerate}[(1)]
-  \item  We selected regexes that contained counting loops whose
-    sum of upper bounds was larger than~20.
-    This let us focus on regexes where the use of counting makes
-    sense (there are surprisingly many regexes occurring in practice where the
-    use of a~counting loop is unnecessary, e.g., regexes containing
-    sub-expressions similar to \regex{a\{0,1\}} or even just \regex{a\{1\}}).
-    Moreover, we also removed all except 26 regexes with counters bigger than
-    1,000, which cannot be handled by \retwo.
-    We left the 26 regexes as representatives of ``large'' counters.
-    This left us with 5,000 regexes.
-\cbstart
-  \item  Then, we filtered out regexes~$R$ such that either $\CA(R)$ was not uniform 
-   (i.e., the \CSA produced by our algorithm was not precise, cf. \cref{sec:correctness}), 
-   or such that the $\CSA$ was not fast 
-   (i.e. not all counting-set operators were constant-time, cf. \cref{sec:CsA}).
-    After this step,
-    a vast majority,
-    4,429 
-    of the regexes, remained. 
-\cbend
-  \item  For the regexes that remained, we used a~lightweight ReDoS generator designed to
-    exploit counting (cf.~\cref{sec:redos_gen}) to generate $\sim$10\,MiB long
-    input texts.
-    In particular, we managed to generate ``adversarial'' input texts for
-    1,789 
-    regexes (for the rest of the regexes, either the underlying state space was
-    too small, so the generator could not construct the text, or the generation hit the
-    timeout of 600\,s).
-    Our benchmark data set is available at~\cite{oopsla20-dataset}.
-\end{enumerate}
 %
-We ran all tools on the generated benchmarks (counting the number of lines of
-the input text matching the regex) and give scatter plots comparing the running
-times of the tools in \cref{fig:ca-vs-re2} and \cref{fig:ca-vs-tools} (the
-timeout was 600\,s).
-On the bottom and the left-hand side of every plot, there are rug plots
-illustrating the distribution of the data points.
-Note that the axes are logarithmic, so the difference between data points grows
-as these points are away from zero (in particular, differences of values
-smaller than 1\,s are negligible).
-The semantics of regexes supported by \grep differs from the one
-supported by other tools, so we only considered the
-cases when the number of matches was the same when comparing with \grep).
-In the plots, the data points between the dashed lines and edges of the plots
-represent errors, e.g. due to the regex being rejected (for counters $>$1,000 for
-\retwo) or being interpreted using a different semantics (in the case of \grep).
-
-\begin{table}[t]
-\footnotesize
-% \vspace*{-7mm}
-\caption{Statistics for the graphs in \cref{fig:graphs} (times are given in seconds).
-For \catool, we provide several times:
-``total'' is the total time,
-``CA'' is the time for translating a regex into a (nondeterministic) CA,
-``CsA'' is the time of determinization of the CA into a CsA, and
-``match'' is the time spent when matching the input text.
-}
-\vspace*{-2.5mm}
-\begin{center}
-\input{stats.tex}
-\end{center}
-\label{tab:stats}
-\vspace{-2.0mm}
-\end{table}
-
-In \cref{fig:ca-vs-re2}, we compare \catool with \retwo.
-We wish to point out the following interesting observations.
-Although \retwo wins more often  on the whole benchmark set 
-(our prototype does not include the many
-advanced optimizations present in \retwo),
-there is
-a~number of benchmarks (287)\ where its performance significantly deteriorates,
-and \catool is faster.
-In particular, there are 89 benchmarks where the time of \retwo is bigger than
-10\,s, i.e., its speed drops below~1\,MiB/s (we consider this speed of
-processing denotes a successful ReDoS attack, even though the limit may be
-significantly larger in practice\footnote{%
-  The required processing speed depends on the application.
-  NIDSes performing deep packet inspection may require a line-processing speed of
-  units or tens of GiB/s~\cite{tacas18-appred}, while application servers
-  validating user inputs may suffice with units or tens of MiB/s.
-}).
-For \catool, the number of benchmarks that took over 10\,s was only~22; 
-in fact, all except
-3~benchmarks finished within 100\,s---the blow-up in these 3~benchmarks is not caused by the
-counters but rather by many ``\regex{|}'' and ``\regex{?}'' operators, so over
-70\,\% of the total time is spent by constructing the \CSA.
-If~used, e.g.,\ in an NIDS, the \CSA would be created only once and then used
-for matching giga-/terabytes of data, so the initial overhead could be neglected.
-
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%\enlargethispage{2mm}
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-Comparing with the other tools (\cref{fig:ca-vs-tools}) and also clearly visible 
-in the corresponding rug plots and the statistics in
-\cref{tab:stats},
-we can observe that the performance of \catool is much more robust than
-the performance of the other tools;
-the mean time and standard deviation of \catool is significantly lower than the
-rest of the tools.
-In particular, from the benchmarks where \catool was faster than \retwo, the
-time of \catool on all except two benchmarks was almost the same (including
-them, the standard deviation was 0.37).
-We provide four times for \catool:
-``total'': the total user time of matching (measured using the GNU \texttt{time} utility),
-``CA'': the time for translating the input regex into a~CA,
-``CsA'': the time it took to determinize the CA into a~CsA, and
-``match'': the time of matching the input text with the CsA.
-Note that, in the tables, there is a~noticeable discrepancy between the sum
-$\text{``CA''} + \text{``CsA''} + \text{``match''}$ and ``total'', which is
-due to the .NET Framework overhead, such as just-in-time compilation and (in
-particular) the garbage collector.
-
-In \cref{tab:best_results}, we give a~selection of interesting benchmarks.
-These contain benchmarks that are difficult for usually more than one tool.
-We emphasize the benchmarks coming from the NIDSes Snort and Bro.
-Notice that, for most of them, matching using \retwo (and also other tools) gets
-extremely slow.
-Slow matching over these regexes can have disastrous consequences for network
-security, potentially completely eliminating a~given NIDS.
-
-\newcommand{\LF}{Sw}
-
-\newcommand{\interestingtable}[0]{
-\begin{table}[t]
-\footnotesize
-\caption{Selection of interesting benchmarks. ``\timeout'' denotes a~timeout
-(600\,s) and ``---'' denotes an error.
-Due to space constraints, in the ``Regex'' column, ``\ldots'' denotes omitted
-parts of the regexes (we tried to preserve the parts containing occurrences of
-  the repetition operator) and
-``\recont'' denotes breaking a regex into two lines. 
-In the column source, \LF\ denotes the regexes collected in \cite{DavisMCSL19} from software projects. 
-}
-% \vspace*{-3mm}
-\label{tab:best_results}
-\vspace*{-2.5mm}
-\begin{center}
-\input{table.tex}
-\end{center}
-\vspace*{-2.0mm}
-\end{table}
-}
-
-The {\CSA}s produced by \catool were also much smaller than the corresponding DFAs.
+%Comparing with the other tools (\cref{fig:ca-vs-tools}) and also clearly visible 
+%in the corresponding rug plots and the statistics in
+%\cref{tab:stats},
+%we can observe that the performance of \catool is much more robust than
+%the performance of the other tools;
+%the mean time and standard deviation of \catool is significantly lower than the
+%rest of the tools.
+%In particular, from the benchmarks where \catool was faster than \retwo, the
+%time of \catool on all except two benchmarks was almost the same (including
+%them, the standard deviation was 0.37).
+%We provide four times for \catool:
+%``total'': the total user time of matching (measured using the GNU \texttt{time} utility),
+%``CA'': the time for translating the input regex into a~CA,
+%``CsA'': the time it took to determinize the CA into a~CsA, and
+%``match'': the time of matching the input text with the CsA.
+%Note that, in the tables, there is a~noticeable discrepancy between the sum
+%$\text{``CA''} + \text{``CsA''} + \text{``match''}$ and ``total'', which is
+%due to the .NET Framework overhead, such as just-in-time compilation and (in
+%particular) the garbage collector.
 %
-The CsAs have on average 29 states (median: 7) and 306
-transitions (median: 11).
+%In \cref{tab:best_results}, we give a~selection of interesting benchmarks.
+%These contain benchmarks that are difficult for usually more than one tool.
+%We emphasize the benchmarks coming from the NIDSes Snort and Bro.
+%Notice that, for most of them, matching using \retwo (and also other tools) gets
+%extremely slow.
+%Slow matching over these regexes can have disastrous consequences for network
+%security, potentially completely eliminating a~given NIDS.
 %
-On the other hand, classical NFAs constructed from the regexes have on average 112 states (median: 52),
+%\newcommand{\LF}{Sw}
 %
-and when determinized, the resulting DFAs have on average 2,802 states
-(median: 67) and 10,384 transitions (median: 107).
+%\newcommand{\interestingtable}[0]{
+%\begin{table}[t]
+%\footnotesize
+%\caption{Selection of interesting benchmarks. ``\timeout'' denotes a~timeout
+%(600\,s) and ``---'' denotes an error.
+%Due to space constraints, in the ``Regex'' column, ``\ldots'' denotes omitted
+%parts of the regexes (we tried to preserve the parts containing occurrences of
+%  the repetition operator) and
+%``\recont'' denotes breaking a regex into two lines. 
+%In the column source, \LF\ denotes the regexes collected in \cite{DavisMCSL19} from software projects. 
+%}
+%% \vspace*{-3mm}
+%\label{tab:best_results}
+%\vspace*{-2.5mm}
+%\begin{center}
+%\input{table.tex}
+%\end{center}
+%\vspace*{-2.0mm}
+%\end{table}
+%}
 %
-Using {\CSA}s significantly lowers the chance that determinization
-explodes.
-
-%-------------------------------------------------------------------------------
+%The {\CSA}s produced by \catool were also much smaller than the corresponding DFAs.
+%%
+%The CsAs have on average 29 states (median: 7) and 306
+%transitions (median: 11).
+%%
+%On the other hand, classical NFAs constructed from the regexes have on average 112 states (median: 52),
+%%
+%and when determinized, the resulting DFAs have on average 2,802 states
+%(median: 67) and 10,384 transitions (median: 107).
+%%
+%Using {\CSA}s significantly lowers the chance that determinization
+%explodes.
+%
+%%-------------------------------------------------------------------------------
+%%\vspace{-1.0mm}
+%\subsubsection{The Effect of Nondeterministic Counting}\label{sec:label}
+%\vspace{-0.0mm}
+%%-------------------------------------------------------------------------------
+%We say that a~regex contains \emph{nondeterministic counting} if, when
+%translated into a~CA~$A$ using the algorithm in \cref{sec:regexes}, there is
+%a~word~$w$ such that~$A$ can over~$w$ reach two configurations with different
+%values of some counter.
+%
+%Regexes with nondeterministic counting are the main focus of our benchmark.
+%Namely, they constitute 67\,\% of the 1,789 regexes used.
+%From the 1,284 regexes that were at least \emph{slightly} problematic for some of
+%the other tools except \catool (it took some tool $\geq$ 1\,s),
+%73\,\% of them were with nondeterministic counting.
+%From the 454 regexes that were \emph{significantly} problematic for some of the other
+%tools (it took some tool $\geq$ 10\,s), 85\,\% of them had
+%nondeterministic counting.
+%From the 109 regexes that were \emph{problematic} for \emph{all} other tools ($\geq$
+%1\,s), 100\,\% were with nondeterministic counting.
+%As shown in the results above, our approach can deal with
+%nondeterministic counting quite well.
+%
+%
+%%-------------------------------------------------------------------------------
+%%\vspace{-1.0mm}
+%\subsubsection{Adversarial Regexes}
+%\vspace{-0.0mm}
+%%-------------------------------------------------------------------------------
+%Another ReDoS scenario is when the attacker can control the regex to be used for
+%matching.
+%%
+%Creating a~counting regex causing efficiency problems for a~given text
+%is easier than generating adversarial texts.
+%For instance, the regex
+%\texttt{[a-zA-Z().,'\ ]*[a-zA-Z\ ] [a-zA-Z()\.,'\ ]\{250\}} was obtained as
+%a~modification of the running example ``\regex{\DOT*a\DOT\{$k$\}}'' (where \regex{a} appears
+%$k$ positions from the end).
+%When run on a $\sim$4\,MiB English text with sufficiently long lines,
+%\retwo took 86\,s, \grep took 26\,s, while \catool took only~1.1\,s.
+%Similar examples could be obtained from regexes from \cref{sec:exp_redos} for which some specific difficult text can be generated, namely by widening their character classes.. 
+%Our approach solves a large class of the dangerous cases,
+%allowing one to significantly alleviate restrictions put on the user for 
+%security/efficiency reasons.
+%
+%%*******************************************************************************
 %\vspace{-1.0mm}
-\subsubsection{The Effect of Nondeterministic Counting}\label{sec:label}
-\vspace{-0.0mm}
-%-------------------------------------------------------------------------------
-We say that a~regex contains \emph{nondeterministic counting} if, when
-translated into a~CA~$A$ using the algorithm in \cref{sec:regexes}, there is
-a~word~$w$ such that~$A$ can over~$w$ reach two configurations with different
-values of some counter.
-
-Regexes with nondeterministic counting are the main focus of our benchmark.
-Namely, they constitute 67\,\% of the 1,789 regexes used.
-From the 1,284 regexes that were at least \emph{slightly} problematic for some of
-the other tools except \catool (it took some tool $\geq$ 1\,s),
-73\,\% of them were with nondeterministic counting.
-From the 454 regexes that were \emph{significantly} problematic for some of the other
-tools (it took some tool $\geq$ 10\,s), 85\,\% of them had
-nondeterministic counting.
-From the 109 regexes that were \emph{problematic} for \emph{all} other tools ($\geq$
-1\,s), 100\,\% were with nondeterministic counting.
-As shown in the results above, our approach can deal with
-nondeterministic counting quite well.
-
-
-%-------------------------------------------------------------------------------
-%\vspace{-1.0mm}
-\subsubsection{Adversarial Regexes}
-\vspace{-0.0mm}
-%-------------------------------------------------------------------------------
-Another ReDoS scenario is when the attacker can control the regex to be used for
-matching.
-%
-Creating a~counting regex causing efficiency problems for a~given text
-is easier than generating adversarial texts.
-For instance, the regex
-\texttt{[a-zA-Z().,'\ ]*[a-zA-Z\ ] [a-zA-Z()\.,'\ ]\{250\}} was obtained as
-a~modification of the running example ``\regex{\DOT*a\DOT\{$k$\}}'' (where \regex{a} appears
-$k$ positions from the end).
-When run on a $\sim$4\,MiB English text with sufficiently long lines,
-\retwo took 86\,s, \grep took 26\,s, while \catool took only~1.1\,s.
-Similar examples could be obtained from regexes from \cref{sec:exp_redos} for which some specific difficult text can be generated, namely by widening their character classes.. 
-Our approach solves a large class of the dangerous cases,
-allowing one to significantly alleviate restrictions put on the user for 
-security/efficiency reasons.
-
-%*******************************************************************************
-\vspace{-1.0mm}
-\subsection{Robustness wrt\ Counter Values}\label{sec:label}
-\vspace{-0.5mm}
-%*******************************************************************************
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-\enlargethispage{2mm}
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-\interestingtable
-This experiment measures the ability of the tools to cope with
-increasing counter bounds.
-For this, we selected the regex ``\regex{(\_a )\{$k$\}\_a}'' where~$k$ is a~parameter
-(the original regex \regex{(\_a )\{64999\}\_a} comes from~\cite{DavisMCSL19})
-and measured the time the tools took on a~$\sim$500\,KiB text created by our
-generator for increasing values of~$k$.
-\mbox{We give the results in \cref{fig:increase} (the timeout was 40\,s).}
-
-With the increasing value of~$k$, the time needed by \catool stays constant,
-around 0.35\,s,
-while the time needed by other tools grows.
-In particular, \dotnet and \srm have cubic trends wrt the value of
-$k$, while \retwo and \grep grow linearly.
-Notice that, for \retwo and \grep, their matching time is low (around 0.01\,s)
-until they reach a~threshold from which they start behaving linearly.
-This corresponds to the situation when the size of the cache for storing states
-of the NFA-to-DFA construction is not enough to accommodate the DFA states
-exercised by the input adversarial text.
-This yields repeated flushing of the cache, making it ineffectual.
-
-%*******************************************************************************
-%\vspace{-1.0mm}
-\subsection{Adversarial Text Generation}\label{sec:redos_gen}
+%\subsection{Robustness wrt\ Counter Values}\label{sec:label}
 %\vspace{-0.5mm}
-%*******************************************************************************
-%\enlargethispage{1.5mm}
-
-\retwo and \grep store powerstates of the NFA-to-DFA construction in a cache.
-In typical cases, the amount of cache misses is low and almost the entire text
-is processed using the cache, which is extremely fast.
-If the cache, however, exceeds a given size, it is flushed.
-If the input text is such that the DFA run sees many different states, then
-cache misses are frequent, so large powerstates need to be constructed often, and
-the performance of the matching drops.
-
-Therefore, we focus on generating texts that force exploration of many new large
-powerstates. 
-In essence, we explore the configuration space of the \CSA with the goal of
-finding as many large configurations as possible, with the focus on generating
-large counting sets.
-We partially drive the search towards loops in the \CSA structure that have a
-potential to create large counting sets: the loops use counters with large bounds, do
-not contain exits, and contain $\ExitCSOp{}$ or $\ExitIncrCSOp{}$ operations.
-For space reasons, we omit the technical details here; perfecting
-this method for stress testing automata-based matchers is, however, one of our future
-goals.
-
-
-%*******************************************************************************
-%\vspace{-0.7mm}
-\subsection{A Note on the Maturity of the Tools}\label{sec:label}
-%\vspace{-1.0mm}
-%*******************************************************************************
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%*******************************************************************************
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %\enlargethispage{2mm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-The aim of our experiments is comparing algorithms rather than tools, and it should
-be noted that \catool is much less optimized than the rest.
-This holds especially for \retwo and \grep, which have both been actively
-developed for over 10 years and the amount of engineering effort invested into
-making them fast is substantial.
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %
-The optimizations are both high-level, such as using the Boyer-Moore algorithm
-for skipping sections of the input text, and low-level, such as using C/C++,
-on-the-fly determinization, or optimizing memory accesses~\cite{regexes-in-the-wild,
-why-gnu-grep-is-fast}. 
 %
-On the other hand,
-although there have been some optimizations done in 
-\catool (such as finding a~start of a~match), their nature is still quite
-simple.
-The three tools are, however, all based on the same principle of using
-deterministic automata, and many of the optimizations
-and heuristics in \retwo and \grep (at least all of those mentioned above) could
-be directly re-applied in our setting.
-\srm builds on the .NET framework and reuses the \dotnet regex parser
-while replacing the built-in backtracking back-end matcher with a
-matching engine based on Brzozowski-style symbolic derivatives to create
-the DFA on the fly.
-In fact, \catool builds on the open-source codebase of \srm and extends it with counters.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\vspace{-0.4mm}
-\section{Related Work}\label{sec:related}
-%\vspace{-1.0mm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%------------------------------------------------------------------------------
-\paragraph{Regexes and their derivatives.}
-%------------------------------------------------------------------------------
-
-Brzozowski derivatives~\cite{Brzozowski64_derivatives} provide a practical
-approach to incrementally creating a DFA from a regex and can be used for
-efficient matching~\cite{Owens09,Fis10} and match generation~\cite{VSXW19}.
+%\interestingtable
+%This experiment measures the ability of the tools to cope with
+%increasing counter bounds.
+%For this, we selected the regex ``\regex{(\_a )\{$k$\}\_a}'' where~$k$ is a~parameter
+%(the original regex \regex{(\_a )\{64999\}\_a} comes from~\cite{DavisMCSL19})
+%and measured the time the tools took on a~$\sim$500\,KiB text created by our
+%generator for increasing values of~$k$.
+%\mbox{We give the results in \cref{fig:increase} (the timeout was 40\,s).}
 %
-Efficient determinization based on Brzozowski derivatives was first investigated
-in~\cite{BeSe86}.
+%With the increasing value of~$k$, the time needed by \catool stays constant,
+%around 0.35\,s,
+%while the time needed by other tools grows.
+%In particular, \dotnet and \srm have cubic trends wrt the value of
+%$k$, while \retwo and \grep grow linearly.
+%Notice that, for \retwo and \grep, their matching time is low (around 0.01\,s)
+%until they reach a~threshold from which they start behaving linearly.
+%This corresponds to the situation when the size of the cache for storing states
+%of the NFA-to-DFA construction is not enough to accommodate the DFA states
+%exercised by the input adversarial text.
+%This yields repeated flushing of the cache, making it ineffectual.
 %
-In the classical setting, Antimirov
-derivatives~\cite{Antimirov96_partderivatives} are used to construct NFAs from
-regexes, and may in some cases result in exponentially more succinct automata
-than the corresponding DFAs constructed with Brzozowski derivatives.
+%%*******************************************************************************
+%%\vspace{-1.0mm}
+%\subsection{Adversarial Text Generation}\label{sec:redos_gen}
+%%\vspace{-0.5mm}
+%%*******************************************************************************
+%%\enlargethispage{1.5mm}
 %
-The precise connection between conditional derivatives defined in
-Section~\ref{sec:regexes} and Antimirov derivatives is that, without counting
-loops,% $\RESET{R}\neq\emptyset$ \lt{$\RESET{R}$ or RST?} iff $R$ is nullable in the classical sense, and
-$\{D\mid \pair{\id}{D}\in\CD{a}{S}\}$ is exactly the Antimirov derivative of
-$R$ for $a$.
+%\retwo and \grep store powerstates of the NFA-to-DFA construction in a cache.
+%In typical cases, the amount of cache misses is low and almost the entire text
+%is processed using the cache, which is extremely fast.
+%If the cache, however, exceeds a given size, it is flushed.
+%If the input text is such that the DFA run sees many different states, then
+%cache misses are frequent, so large powerstates need to be constructed often, and
+%the performance of the matching drops.
 %
-The Antimirov construction has also been generalized to extended regexes
-\cite{Champarnaud11_extended} allowing Boolean operators such as complement and
-intersection.
+%Therefore, we focus on generating texts that force exploration of many new large
+%powerstates. 
+%In essence, we explore the configuration space of the \CSA with the goal of
+%finding as many large configurations as possible, with the focus on generating
+%large counting sets.
+%We partially drive the search towards loops in the \CSA structure that have a
+%potential to create large counting sets: the loops use counters with large bounds, do
+%not contain exits, and contain $\ExitCSOp{}$ or $\ExitIncrCSOp{}$ operations.
+%For space reasons, we omit the technical details here; perfecting
+%this method for stress testing automata-based matchers is, however, one of our future
+%goals.
 %
-Basic theoretical properties between various automata formalisms and derivatives
-are discussed in \cite{Allauzen06_unified}.
-
+%
+%%*******************************************************************************
+%%\vspace{-0.7mm}
+%\subsection{A Note on the Maturity of the Tools}\label{sec:label}
+%%\vspace{-1.0mm}
+%%*******************************************************************************
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%\enlargethispage{2mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%The aim of our experiments is comparing algorithms rather than tools, and it should
+%be noted that \catool is much less optimized than the rest.
+%This holds especially for \retwo and \grep, which have both been actively
+%developed for over 10 years and the amount of engineering effort invested into
+%making them fast is substantial.
+%%
+%The optimizations are both high-level, such as using the Boyer-Moore algorithm
+%for skipping sections of the input text, and low-level, such as using C/C++,
+%on-the-fly determinization, or optimizing memory accesses~\cite{regexes-in-the-wild,
+%why-gnu-grep-is-fast}. 
+%%
+%On the other hand,
+%although there have been some optimizations done in 
+%\catool (such as finding a~start of a~match), their nature is still quite
+%simple.
+%The three tools are, however, all based on the same principle of using
+%deterministic automata, and many of the optimizations
+%and heuristics in \retwo and \grep (at least all of those mentioned above) could
+%be directly re-applied in our setting.
+%\srm builds on the .NET framework and reuses the \dotnet regex parser
+%while replacing the built-in backtracking back-end matcher with a
+%matching engine based on Brzozowski-style symbolic derivatives to create
+%the DFA on the fly.
+%In fact, \catool builds on the open-source codebase of \srm and extends it with counters.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%\vspace{-0.4mm}
+%\section{Related Work}\label{sec:related}
+%%\vspace{-1.0mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Regexes and their derivatives.}
+%%------------------------------------------------------------------------------
+%
+%Brzozowski derivatives~\cite{Brzozowski64_derivatives} provide a practical
+%approach to incrementally creating a DFA from a regex and can be used for
+%efficient matching~\cite{Owens09,Fis10} and match generation~\cite{VSXW19}.
+%%
+%Efficient determinization based on Brzozowski derivatives was first investigated
+%in~\cite{BeSe86}.
+%%
+%In the classical setting, Antimirov
+%derivatives~\cite{Antimirov96_partderivatives} are used to construct NFAs from
+%regexes, and may in some cases result in exponentially more succinct automata
+%than the corresponding DFAs constructed with Brzozowski derivatives.
+%%
+%The precise connection between conditional derivatives defined in
+%Section~\ref{sec:regexes} and Antimirov derivatives is that, without counting
+%loops,% $\RESET{R}\neq\emptyset$ \lt{$\RESET{R}$ or RST?} iff $R$ is nullable in the classical sense, and
+%$\{D\mid \pair{\id}{D}\in\CD{a}{S}\}$ is exactly the Antimirov derivative of
+%$R$ for $a$.
+%%
+%The Antimirov construction has also been generalized to extended regexes
+%\cite{Champarnaud11_extended} allowing Boolean operators such as complement and
+%intersection.
+%%
+%Basic theoretical properties between various automata formalisms and derivatives
+%are discussed in \cite{Allauzen06_unified}.
+%
+%%\vspace{-0.5mm}
+%%------------------------------------------------------------------------------
+%\paragraph{Automata with counting.}
+%%------------------------------------------------------------------------------
+%This work is a continuation of our recent work~\cite{aplas19}.
+%%
+%In~\cite{aplas19}, we propose a~general determinization of CAs that can
+%produce smaller automata than the naive explicit determinization but has the
+%same worst-case complexity, which depends on the counters with the factor
+%$(K+1)^{|C|}$ where $C$ is the set of counters and $K$ the maximum counter upper
+%bound.
+%%
+%It also proposes a more efficient algorithm for the class of monadic regexes (single-state-scoped counters and counting on self-loops only), 
+%but it can still generate $(K+1)^{|Q|}$ states 
+%(for example, it would generate $K+1$ states for the regex from Fig.~\ref{fig:ak})---while the complexity of our determinization does not depend on $K$.
+%%
+%\cite{aplas19} also present neither a derivative construction for translating regexes into CAs nor 
+%an application of CAs in pattern
+%matching.
+%
+%The use of counters has also been investigated in~\cite{cikm15} for
+%regexes with bounded repetition, building on the
+%formalism of counter automata called CNFAs~\cite{GGM12}. 
+%%
+%A~CA in the current paper is essentially a~symbolic generalization of a CNFA
+%with some small technical differences, such as counters being 0-based as opposed
+%to 1-based in a~CNFA.
+%The latter difference is mainly due to our use of
+%a~generalized \emph{Antimirov} construction of CAs, 
+%as opposed to a~generalized \emph{Glushkov} construction used
+%in~\cite{GGM12}, which is algorithmically quite different.
+%%
+%The work in~\cite{cikm15} focuses mostly on deterministic regexes and on
+%a~different problem, namely, the so-called incremental matching in the context
+%of database queries (a~query is repeatedly evaluated on a gradually changing
+%word).
+%%
+%For standard matching, it uses a variant of the Thompson's algorithm applied
+%directly on a~CA instead of an NFA (hence the translation of the regex to an
+%automaton does not depend on the counter bounds, but each text character
+%is processed with the same cost as with the original Thompson's algorithm, at
+%worst linear to the size of the NFA and the counter bounds).
+%This algorithm is indeed fast on deterministic regexes from practice but can
+%slow down significantly on nondeterministic ones (which we witnessed in several
+%experiments with the prototype implementation of~\cite{cikm15} on several of our
+%regexes).
+%
+%The work in \cite{KT03} is a theoretical study of matching regexes with
+%counting. It proposes a matching algorithm based on dynamic programming that
+%runs in time at worst quadratic to the length of the text (while determinization
+%and NFA-simulation-based algorithms run in time linear to the text length). The
+%experimental comparison of \cite{cikm15} with their variant of Thompson's
+%algorithm suggests that the matching algorithm of \cite{KT03} is indeed not
+%competitive in practice.
+%
+%Extended FAs (XFAs) augment classical automata with a scratch memory of
+%bits~\cite{SEJ08,jha_extended} that can represent counters.
+%%
+%Regexes are compiled into deterministic XFAs by first using an extended version
+%of the Thompson's algorithm, followed by an extended version of the
+%classical powerset construction and minimization.
+%%
+%Although a small XFA may exist, the determinization algorithm incurs an
+%intermediate exponential blowup of the search space for inputs such as
+%\regex{\DOT*a\DOT\{$k$\}}.
+%
+%$R$-automata \cite{abdulla_rautomata} are also related to our CAs, but their
+%counters need not have upper bounds and cannot be tested or compared.
+%%
+%Further, there are various notions of extended finite state machines whose
+%expressive power goes beyond regular languages,
+%e.g.,~\cite{cheng_efsm,shiple_efsm,jha_extended,finkel_fast}.
+%%
+%Such automata are, however, not suitable for the problem of pattern matching
+%considered here.
+%
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%%\enlargethispage{2mm}
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%
+% 
+%%\vspace{-1mm}
+%%------------------------------------------------------------------------------
+%\paragraph{Regexes with counting.}
+%%------------------------------------------------------------------------------
+% 
+%Regexes with counters are also discussed
+%in~\cite{Hovland09,KilTuh07,GMN07}.
+%%
+%The automata with counters used in~\cite{Hovland09}, called FACs, are close to
+%our CAs, but we allow symbolic character predicates and more kinds of counter
+%updates.
+%%
+%The conversion from regexes to FACs proposed in~\cite{Hovland09} uses a variant
+%of Glushkov automata~\cite{Glu61} and the \texttt{first-last-follow}
+%construction~\cite{BP96,BW98}.
+%%
+%For us, the Antimirov-derivative-based construction was easier to implement and
+%provides benefits that are not available otherwise.
+%%
+%Namely, it allows subsumption checking between regexes,
+%%
+%and it generates fewer counters (one per distinct counter
+%subexpression rather than one per counter position in the regex abstract syntax
+%tree).
+%%
+%While all these algorithms generate $\epsilon$-free automata, they
+%differ in complexity~\cite{Allauzen06_unified} and are thus not merely
+%different disguises of the same technique.
+%%
+%In particular, the Antimirov automaton is in general smaller than the Glushkov
+%automaton with up to $n+1$ states and up to $n^2$ transitions.
+%%
+%The Antimirov automaton is in fact a quotient of the Glushkov
+%automaton 
+%~\cite{CZ01,IlieYu03}.
+%%
+%Another generalization of Antimirov derivatives
+%\cite{LOMBARDY2005141} introduces expressions $kR$ where $R$ is
+%a~rational expression and $k$ a~multiplicity from a semiring such as
+%$\mathbb{Q}$; this generalization is unrelated to counters.
+% 
+%An open question is whether the generalized Antimirov construction can be
+%extended to work with Brzozowski derivatives~\cite{Brzozowski64_derivatives}; we
+%believe that such an extension, if it exists, is not straightforward because it
+%would give rise to a direct and incremental determinization algorithm.
+% 
+%There are also works on regexes with counting that translate
+%deterministic regexes to CAs and work with different notions of
+%determinism~\cite{GGM12,Chen15_counting}.
+%%
+%A central result in~\cite{Hovland09} is that \emph{counter-1-unambiguous}
+%regexes can be compiled into deterministic FACs and that checking
+%determinism of FACs can be done in polynomial time.
+%%
+%The related work in~\cite{Hovland-Membership2012} studies membership in regexes
+%with counting.
+%%
+%None of these papers addresses the problem of determinizing nondeterministic
+%CAs.
+% 
+%%\enlargethispage{2mm}
+%%\vspace{-1mm}
 %\vspace{-0.5mm}
-%------------------------------------------------------------------------------
-\paragraph{Automata with counting.}
-%------------------------------------------------------------------------------
-This work is a continuation of our recent work~\cite{aplas19}.
+%%------------------------------------------------------------------------------
+%\paragraph{Pattern matching of regexes with counting.}
+%%------------------------------------------------------------------------------
 %
-In~\cite{aplas19}, we propose a~general determinization of CAs that can
-produce smaller automata than the naive explicit determinization but has the
-same worst-case complexity, which depends on the counters with the factor
-$(K+1)^{|C|}$ where $C$ is the set of counters and $K$ the maximum counter upper
-bound.
+%The counting operator often appears in regexes in practice.
+%%
+%In particular, our analysis of the 537k real-world regexes obtained in the study
+%performed by Davis et al.~\cite{DavisMCSL19} showed that over 33k regexes
+%contained the counting operator.
 %
-It also proposes a more efficient algorithm for the class of monadic regexes (single-state-scoped counters and counting on self-loops only), 
-but it can still generate $(K+1)^{|Q|}$ states 
-(for example, it would generate $K+1$ states for the regex from Fig.~\ref{fig:ak})---while the complexity of our determinization does not depend on $K$.
+%GNU \grep~\cite{grep} (written in C) and \retwo~\cite{re2} (written in C++) are
+%extremely optimized regex matchers.
+%%
+%Both are based on translating the regex into an NFA and performing an on-the-fly
+%determinization during the matching, avoiding a~costly \emph{a~priori}
+%determinization,
+%while keeping a~good performance by avoiding backtracking. (The translation into
+%FAs is only allowed when the regex does not include back-references, which allow to express some context-free propeties).
+%%provide the power to express some context-sensitive languages.)
+%%
+%Both engines process the counting operator by first rewriting a regex of the
+%form \regex{<re>\{$n,m$\}} into \regex{<re>\ldots<re><re>\{0,$m-n$\}}.
+%%
+%The regex \regex{<re>\{0,$k$\}} is then transformed into
+%\regex{(<re>(<re>(\ldots<re>?)?)?)?}
+%%
+%%More details about the DFA construction can be found
+%%in~\cite{regexes-in-the-wild}.
+%%
+%(see ~\cite{regexes-in-the-wild} for more details).
 %
-\cite{aplas19} also present neither a derivative construction for translating regexes into CAs nor 
-an application of CAs in pattern
-matching.
-
-The use of counters has also been investigated in~\cite{cikm15} for
-regexes with bounded repetition, building on the
-formalism of counter automata called CNFAs~\cite{GGM12}. 
 %
-A~CA in the current paper is essentially a~symbolic generalization of a CNFA
-with some small technical differences, such as counters being 0-based as opposed
-to 1-based in a~CNFA.
-The latter difference is mainly due to our use of
-a~generalized \emph{Antimirov} construction of CAs, 
-as opposed to a~generalized \emph{Glushkov} construction used
-in~\cite{GGM12}, which is algorithmically quite different.
+%In the .NET ecosystem, we are aware of two regex matchers.
+%%
+%The first one is the standard .NET regex matcher provided in
+%\texttt{System.Text.RegularExpressions}, which is based on a backtracking
+%search.
+%%
+%The other one is Symbolic Regex Matcher (SRM) of~\cite{VSXW19} based on the
+%so-called \emph{symbolic derivatives}, which provide a backtracking-free search
+%(without an explicit conversion into a~DFA) and can deal more efficiently with
+%the counting operator.
 %
-The work in~\cite{cikm15} focuses mostly on deterministic regexes and on
-a~different problem, namely, the so-called incremental matching in the context
-of database queries (a~query is repeatedly evaluated on a gradually changing
-word).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\ifTR
+%\input{implementation.tex}
+%\fi
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-For standard matching, it uses a variant of the Thompson's algorithm applied
-directly on a~CA instead of an NFA (hence the translation of the regex to an
-automaton does not depend on the counter bounds, but each text character
-is processed with the same cost as with the original Thompson's algorithm, at
-worst linear to the size of the NFA and the counter bounds).
-This algorithm is indeed fast on deterministic regexes from practice but can
-slow down significantly on nondeterministic ones (which we witnessed in several
-experiments with the prototype implementation of~\cite{cikm15} on several of our
-regexes).
-
-The work in \cite{KT03} is a theoretical study of matching regexes with
-counting. It proposes a matching algorithm based on dynamic programming that
-runs in time at worst quadratic to the length of the text (while determinization
-and NFA-simulation-based algorithms run in time linear to the text length). The
-experimental comparison of \cite{cikm15} with their variant of Thompson's
-algorithm suggests that the matching algorithm of \cite{KT03} is indeed not
-competitive in practice.
-
-Extended FAs (XFAs) augment classical automata with a scratch memory of
-bits~\cite{SEJ08,jha_extended} that can represent counters.
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%\enlargethispage{1mm}
+%%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %
-Regexes are compiled into deterministic XFAs by first using an extended version
-of the Thompson's algorithm, followed by an extended version of the
-classical powerset construction and minimization.
-%
-Although a small XFA may exist, the determinization algorithm incurs an
-intermediate exponential blowup of the search space for inputs such as
-\regex{\DOT*a\DOT\{$k$\}}.
-
-$R$-automata \cite{abdulla_rautomata} are also related to our CAs, but their
-counters need not have upper bounds and cannot be tested or compared.
-%
-Further, there are various notions of extended finite state machines whose
-expressive power goes beyond regular languages,
-e.g.,~\cite{cheng_efsm,shiple_efsm,jha_extended,finkel_fast}.
-%
-Such automata are, however, not suitable for the problem of pattern matching
-considered here.
-
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%\enlargethispage{2mm}
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
- 
-%\vspace{-1mm}
-%------------------------------------------------------------------------------
-\paragraph{Regexes with counting.}
-%------------------------------------------------------------------------------
- 
-Regexes with counters are also discussed
-in~\cite{Hovland09,KilTuh07,GMN07}.
-%
-The automata with counters used in~\cite{Hovland09}, called FACs, are close to
-our CAs, but we allow symbolic character predicates and more kinds of counter
-updates.
-%
-The conversion from regexes to FACs proposed in~\cite{Hovland09} uses a variant
-of Glushkov automata~\cite{Glu61} and the \texttt{first-last-follow}
-construction~\cite{BP96,BW98}.
-%
-For us, the Antimirov-derivative-based construction was easier to implement and
-provides benefits that are not available otherwise.
-%
-Namely, it allows subsumption checking between regexes,
-%
-and it generates fewer counters (one per distinct counter
-subexpression rather than one per counter position in the regex abstract syntax
-tree).
-%
-While all these algorithms generate $\epsilon$-free automata, they
-differ in complexity~\cite{Allauzen06_unified} and are thus not merely
-different disguises of the same technique.
-%
-In particular, the Antimirov automaton is in general smaller than the Glushkov
-automaton with up to $n+1$ states and up to $n^2$ transitions.
-%
-The Antimirov automaton is in fact a quotient of the Glushkov
-automaton 
-~\cite{CZ01,IlieYu03}.
-%
-Another generalization of Antimirov derivatives
-\cite{LOMBARDY2005141} introduces expressions $kR$ where $R$ is
-a~rational expression and $k$ a~multiplicity from a semiring such as
-$\mathbb{Q}$; this generalization is unrelated to counters.
- 
-An open question is whether the generalized Antimirov construction can be
-extended to work with Brzozowski derivatives~\cite{Brzozowski64_derivatives}; we
-believe that such an extension, if it exists, is not straightforward because it
-would give rise to a direct and incremental determinization algorithm.
- 
-There are also works on regexes with counting that translate
-deterministic regexes to CAs and work with different notions of
-determinism~\cite{GGM12,Chen15_counting}.
-%
-A central result in~\cite{Hovland09} is that \emph{counter-1-unambiguous}
-regexes can be compiled into deterministic FACs and that checking
-determinism of FACs can be done in polynomial time.
-%
-The related work in~\cite{Hovland-Membership2012} studies membership in regexes
-with counting.
-%
-None of these papers addresses the problem of determinizing nondeterministic
-CAs.
- 
-%\enlargethispage{2mm}
-%\vspace{-1mm}
-\vspace{-0.5mm}
-%------------------------------------------------------------------------------
-\paragraph{Pattern matching of regexes with counting.}
-%------------------------------------------------------------------------------
-
-The counting operator often appears in regexes in practice.
-%
-In particular, our analysis of the 537k real-world regexes obtained in the study
-performed by Davis et al.~\cite{DavisMCSL19} showed that over 33k regexes
-contained the counting operator.
-
-GNU \grep~\cite{grep} (written in C) and \retwo~\cite{re2} (written in C++) are
-extremely optimized regex matchers.
-%
-Both are based on translating the regex into an NFA and performing an on-the-fly
-determinization during the matching, avoiding a~costly \emph{a~priori}
-determinization,
-while keeping a~good performance by avoiding backtracking. (The translation into
-FAs is only allowed when the regex does not include back-references, which allow to express some context-free propeties).
-%provide the power to express some context-sensitive languages.)
-%
-Both engines process the counting operator by first rewriting a regex of the
-form \regex{<re>\{$n,m$\}} into \regex{<re>\ldots<re><re>\{0,$m-n$\}}.
-%
-The regex \regex{<re>\{0,$k$\}} is then transformed into
-\regex{(<re>(<re>(\ldots<re>?)?)?)?}
-%
-%More details about the DFA construction can be found
-%in~\cite{regexes-in-the-wild}.
-%
-(see ~\cite{regexes-in-the-wild} for more details).
-
-
-In the .NET ecosystem, we are aware of two regex matchers.
-%
-The first one is the standard .NET regex matcher provided in
-\texttt{System.Text.RegularExpressions}, which is based on a backtracking
-search.
-%
-The other one is Symbolic Regex Matcher (SRM) of~\cite{VSXW19} based on the
-so-called \emph{symbolic derivatives}, which provide a backtracking-free search
-(without an explicit conversion into a~DFA) and can deal more efficiently with
-the counting operator.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\ifTR
-\input{implementation.tex}
-\fi
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-\enlargethispage{1mm}
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\vspace{-0.5mm}
-\section{Conclusions and Future Work}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\vspace{-0.5mm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-We have presented a framework for efficient pattern matching of regexes with counting,
-which includes a derivative construction to compile regexes to counting automata,
-their subsequent determinization into novel counting-set automata,
-and a~fast matching algorithm.
+%\section{Conclusions and Future Work}
+%%\vspace{-0.5mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-The resources needed to build the CsAs are independent of counter bounds.
+%We have presented a framework for efficient pattern matching of regexes with counting,
+%which includes a derivative construction to compile regexes to counting automata,
+%their subsequent determinization into novel counting-set automata,
+%and a~fast matching algorithm.
+%%
+%The resources needed to build the CsAs are independent of counter bounds.
+%%
+%It handles a majority of regexes with counting found in practice, with a much more stable performance than other matchers.  
 %
-It handles a majority of regexes with counting found in practice, with a much more stable performance than other matchers.  
-
-In the future, we intend to explore the limits of the idea of counting sets to
-enlarge and clearly delimit the class of regexes and counting automata that can
-be succinctly determinized while preserving fast matching.
+%In the future, we intend to explore the limits of the idea of counting sets to
+%enlarge and clearly delimit the class of regexes and counting automata that can
+%be succinctly determinized while preserving fast matching.
+%%
+%We also plan to explore possible usage of CsAs as a replacement of classical automata in other
+%applications where automata are used, for instance, as symbolic representations
+%of state spaces. 
+%For this, we intend to develop CsA counterparts of essential automata
+%techniques, such as Boolean operations and minimization/size-reduction techniques.
+%We also wish to elaborate on our method for generating texts for stress-testing matchers on regexes with counting.
 %
-We also plan to explore possible usage of CsAs as a replacement of classical automata in other
-applications where automata are used, for instance, as symbolic representations
-of state spaces. 
-For this, we intend to develop CsA counterparts of essential automata
-techniques, such as Boolean operations and minimization/size-reduction techniques.
-We also wish to elaborate on our method for generating texts for stress-testing matchers on regexes with counting.
-
-
-\ifTR
-%no acks in TR
-\else
-%\vspace{-1mm}
-\begin{acks}   % NO LEADING SPACE before \begin{acks}!!!
-%\vspace{-1mm}
-We thank the anonymous reviewers and also Juraj S\'{i}\v{c} for their valuable comments and suggestions.
-This work is supported by
-the \grantsponsor{msmt}{Czech Ministry of Education, Youth and
-Sports}{http://www.msmt.cz} project \grantnum{msmt}{LL1908} of the ERC.CZ
-programme, and
-the \grantsponsor{fit}{FIT BUT}{http://www.fit.vutbr.cz}
-internal project \grantnum{fit}{FIT-S-20-6427}.
-\end{acks}
-\fi
+%
+%\ifTR
+%%no acks in TR
+%\else
+%%\vspace{-1mm}
+%\begin{acks}   % NO LEADING SPACE before \begin{acks}!!!
+%%\vspace{-1mm}
+%We thank the anonymous reviewers and also Juraj S\'{i}\v{c} for their valuable comments and suggestions.
+%This work is supported by
+%the \grantsponsor{msmt}{Czech Ministry of Education, Youth and
+%Sports}{http://www.msmt.cz} project \grantnum{msmt}{LL1908} of the ERC.CZ
+%programme, and
+%the \grantsponsor{fit}{FIT BUT}{http://www.fit.vutbr.cz}
+%internal project \grantnum{fit}{FIT-S-20-6427}.
+%\end{acks}
+%\fi
 % NO TRAILING SPACE AFTER \end{acks}!!!
 
 % \ol{LIMIT: 27 pages (excl bibliography)}
