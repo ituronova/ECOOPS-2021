@@ -68,6 +68,41 @@
   doi       = {10.1007/3-540-58179-0\_43},
 }
 
+@article{rex,
+  author    = {Asiri Rathnayake and
+               Hayo Thielecke},
+  title     = {Static Analysis for Regular Expression Exponential Runtime via Substructural
+               Logics},
+  journal   = {CoRR},
+  volume    = {abs/1405.7058},
+  year      = {2014}}
+  
+  @inproceedings{regexStatic,
+  author    = {Nicolaas Weideman and
+               Brink van der Merwe and
+               Martin Berglund and
+               Bruce W. Watson},
+    title     = {Analyzing Matching Time Behavior of Backtracking Regular Expression
+               Matchers by Using Ambiguity of {NFA}},
+  booktitle = {Implementation and Application of Automata - 21st International Conference,
+               {CIAA} 2016, Seoul, South Korea, July 19-22, 2016, Proceedings},
+  series    = {LNCS},
+  volume    = {9705},
+  pages     = {322--334},
+  publisher = {Springer},
+  year      = {2016}}
+
+@article{rexploiter,
+  author    = {Valentin W{\"{u}}stholz and
+               Oswaldo Olivo and
+               Marijn J. H. Heule and
+               Isil Dillig},
+  title     = {Static Detection of DoS Vulnerabilities in Programs that use Regular
+               Expressions (Extended Version)},
+  journal   = {CoRR},
+  volume    = {abs/1701.04045},
+  year      = {2017}}
+
 @inproceedings{boigelot_overivew,
   author    = {Bernard Boigelot and
                Pierre Wolper},
@@ -426,6 +461,31 @@ author = "Sylvain Lombardy and Jacques Sakarovitch",
   doi       = {10.1016/0304-3975(86)90088-5},
 }
 
+@inproceedings{slowfuzz,
+  author    = {Theofilos Petsios and
+               Jason Zhao and
+               Angelos D. Keromytis and
+               Suman Jana},
+  title     = {SlowFuzz: Automated Domain-Independent Detection of Algorithmic Complexity
+               Vulnerabilities},
+  booktitle = {CCS}'17},
+  pages     = {2155--2168},
+  publisher = {{ACM}},
+  year      = {2017},}
+  
+  @inproceedings{rescue,
+  author    = {Yuju Shen and
+               Yanyan Jiang and
+               Chang Xu and
+               Ping Yu and
+               Xiaoxing Ma and
+               Jian Lu},
+  title     = {ReScue: crafting regular expression DoS attacks},
+  booktitle = {{ASE}'18},
+  pages     = {225--235},
+  publisher = {{ACM}},
+  year      = {2018},}
+
 @Article{Br93,
   author = 	 {Br\"uggemann-Klein, A.},
   title = 	 {Regular expressions into finite automata},
@@ -437,6 +497,18 @@ author = "Sylvain Lombardy and Jacques Sakarovitch",
   pages = 	 {197--213},
 }
 
+@inproceedings{staticAna,
+  author    = {James Kirrage and
+               Asiri Rathnayake and
+               Hayo Thielecke},
+  title     = {Static Analysis for Regular Expression Denial-of-Service Attacks},
+  booktitle = { {NSS}'13},
+  series    = {LNCS},
+  volume    = {7873},
+  pages     = {135--148},
+  publisher = {Springer},
+  year      = {2013},}
+  
 @inproceedings{cikm15,
   author    = {Henrik Bj\"{o}rklund and
                Wim Martens and
@@ -448,6 +520,19 @@ author = "Sylvain Lombardy and Jacques Sakarovitch",
   series    = {ACM},
 }
 
+@Misc{libfuzz,
+  author = "{LLVM project}",
+  title = "{libFuzzer: A library for coverage-guided fuzz testing}",
+  note =  "{\url{https://llvm.org/docs/LibFuzzer.html}}",
+}
+
+@Misc{sdl1,
+  author = "{Bryan Sullivan}",
+  title = "{New Tool: SDL Regex Fuzzer}",
+  note =  "{\url{https://www.microsoft.com/security/blog/2010/10/12/new-tool-sdl-regex-fuzzer/}}",
+}
+
+
 @Misc{automata_library,
   author = "{Microsoft Automata library}",
   title = "{Automata and transducer library for .NET}",
@@ -458,6 +543,12 @@ author = "Sylvain Lombardy and Jacques Sakarovitch",
   author = "RegExLib.com",
   title = "{The Internet's first Regular Expression Library, }",
   note =  "{\url{http://regexlib.com/}}",
+}
+
+@Misc{stack,
+  author = "stackOverflow.com",
+  title = "{Question and answer site for programmers, }",
+  note =  "{\url{http://stackoverflow.com/}}",
 }
 
 @MISC{snort,
@@ -740,6 +831,63 @@ doi = {10.1145/230514.571645}
  keywords = {REDOS, Regular expressions, catastrophic backtracking, empirical software engineering},
 } 
 
+@phdthesis{rxxr2thesis,
+  author    = {Asiri Rathnayake},
+  title     = {Semantics, analysis and security of backtracking regular expression
+               matchers},
+  school    = {University of Birmingham, {UK}},
+  year      = {2015},}
+
+@article{rxxr2,
+  author    = {Asiri Rathnayake and
+               Hayo Thielecke},
+  title     = {Static Analysis for Regular Expression Exponential Runtime via Substructural
+               Logics},
+  journal   = {CoRR},
+  volume    = {abs/1405.7058},
+  year      = {2014},}
+  
+  
+  @inproceedings{rexploiter,
+  author    = {Valentin W{\"{u}}stholz and
+               Oswaldo Olivo and
+               Marijn J. H. Heule and
+               Isil Dillig},
+  title     = {Static Detection of DoS Vulnerabilities in Programs that Use Regular
+               Expressions},
+  booktitle = {{TACAS}'17},
+  series    = {LNCS},
+  volume    = {10206},
+  pages     = {3--20},
+  year      = {2017},}
+  
+  @inproceedings{fuzz1,
+  author    = {Patrice Godefroid and
+               Michael Y. Levin and
+               David A. Molnar},
+  title     = {Automated Whitebox Fuzz Testing},
+  booktitle = {Proceedings of the Network and Distributed System Security Symposium,
+               {NDSS} 2008, San Diego, California, USA, 10th February - 13th February
+               2008},
+  publisher = {The Internet Society},
+  year      = {2008},}
+  
+  inproceedings{weideman,
+  author    = {Nicolaas Weideman and
+               Brink van der Merwe and
+               Martin Berglund and
+               Bruce W. Watson},
+  editor    = {Yo{-}Sub Han and
+               Kai Salomaa},
+  title     = {Analyzing Matching Time Behavior of Backtracking Regular Expression
+               Matchers by Using Ambiguity of {NFA}},
+  booktitle = {{CIAA}'16},
+  series    = {LNCS},
+  volume    = {9705},
+  pages     = {322--334},
+  publisher = {Springer},
+  year      = {2016},}
+  
 @inproceedings{VeanesB12,
   author    = {Margus Veanes and
                Nikolaj Bj{\o}rner},

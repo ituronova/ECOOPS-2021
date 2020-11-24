@@ -2310,7 +2310,6 @@ We obtain the counting-set operator \mbox{$\CS{f} = \{\ExitCSOp[c]\}$ and genera
 CsA transition $\tau_1 =
 \move{\{q_0\}}{\acl\land\beta,\{\ExitCSOp[c]\}}{\{q_0,q_1\}}$.}
 
-
 Next, let us focus on the $\acl$-transitions from $S_1 = \{q_0,q_1\}$.
 Here, $\Gamma_{S_1,\acl}$ has the following three satisfiable elements: $\CanExit{c}\land
 \CanIncr{c}$,  $\neg\CanExit{c}\land \CanIncr{c}$, and  $\CanExit{c}\land
@@ -2359,10 +2358,269 @@ value 0 there).
 \end{ex}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{ReDoS Attacks}\label{sec:redos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Regular expressions are widely used in many programming languages.
+%
+Unfortunately, they are only small parts of a big projects so they often lack testing and analysing.
+%
+However, a single poorly-written regex may lead to catastrophic consequences, such as failed input validation, leaky firewalls and 
+%
+even a ReDoS attack.
+% 
+Therefore, there is a desire to develop an automated tool for analyzing the regexes to protect systems against these attacks.
+%
+
+
+
+The stress testing is an active area of research.
+%
+The most of the state-of-the-art ReDoS analyzers focus on regex matchers that are based on backtracking algorithm.
+%
+The weakness point of the backtracking
+matchers is that they may have a running time that is exponential in the size of the input.
+%
+The naive algorithm for matching regular expression is to build a nondeterministic finite automaton (NFA) such that there can
+be several possible next states for each pair of state and input symbol. 
+%
+The backtracking algorithm tries all the possible paths until it finds a match.
+
+\begin{figure}
+  %\ \\[-10mm]
+  \vspace{-3mm}
+  \hspace{-10mm}
+  \begin{center}
+    \includegraphics[height=4.6cm,keepaspectratio]{figures/nfaplus.jpg}
+  \end{center}
+  \label{fig:nfaplus}
+\end{figure}
+
+\begin{example}
+To illustrate the vulnerability of the regex matchers based on backtracking algorithm, let's have a regular expression $\textasciicircum(a+)+\$$
+and an input text $a^nb$.
+%
+A backtracking matcher would take an exponential time in $n$ when trying to find a match.
+%
+All attempts fail in the end since there is a letter $b$ at the end of the input.
+%
+For $n=4$ there are 16 possible runs. 
+%
+For $n=16$ there are 65636 possible runs. 
+%
+This is an extreme case where the algorithm must pass many path to fail.
+\end{example}
+
+The state-of-the-art ReDoS generators use this knowledge to generate a well-crafted input that will make the matcher vulnerable.
+%
+The generator can be either static, dynamic or combination of both based on whether actual regex matching is conducted.
+%
+
+Static ReDoS generators are based purely on the regex.
+%
+They represent a given regex by e-NFA~\cite{staticAna}.
+%
+They can be sound and complete for certain class of regexes,
+however, the major disadvantage of these generators is that 
+often report false positive attacks, or miss ReDoS vulnerability
+of regexes.
+
+
+
+%%%  
+% RegexStatic
+%%%%
+\emph{
+The tool RegexStatic ~\cite{weideman} is the first representative of the static generators.
+%
+It creates pNFA to develop an NFAA tool for detecting ReDoS vulnerabilities
+for regexes. 
+%
+pNFA is a new automaton model, which can
+describe notions like back-references and named groups. 
+%
+However,
+new attack string patterns based on this model need exploration
+and improvement.
+%
+}
+
+
+%%%  
+% REXPLOITER
+%%%%
+
+The next tool based on the static analysis is  Rexploiter~\cite{rexploiter}. 
+%
+Given a regular expression, 
+it constructs a corresponding NFA based on which determines the worst-case complexity of matching the regex
+against an arbitrary input string.
+%
+The algorithm can identify whether an NFA has linear, super-linear, or exponential time complexity.
+%
+Moreover, unlike RegexStatic~\cite{weideman}, it can also construct an attack automaton in order to capture all possible attack strings 
+that trigger worst-case behaviour of the matching algorithm.
+
+The main idea of the analysis is that a NFA $A$ is hyper-vulnerable (has exponential complexity)
+if there exists a string $s$ such that the number of distinct matching paths $\pi_i$ (labelled with the same symbols) leading from state $q_0$ to a rejecting
+state $q_r$ is exponential in the length of $s$.
+%
+Hence, if $A$ rejects $s$ then the backtracking matching algorithm needs to explore each of these exponentially many paths.
+%
+
+
+The $A$ has to contain a pivot state $q$ reachable from the initial state $q_0$, such that there are two paths $\pi_1$ and $\pi_2$ back to the state $q$ 
+on the same input string $s$.
+%
+Moreover, there has to be a way of reaching a rejecting state $q_r$ from $q$.
+%
+The results is a string $s = s_0 \dot s_c^k \dot s_1$ with a \emph{attack prefix} $s_0$ given by $labels(\pi_p)$, an \emph{attack suffix} $s_1$ given by $labels(\pi_s)$,
+and \emph{attack core} $s_c$ given by $labels(\pi_1)$, that will be rejected by $A$.
+%
+Clearly, with increasing value of $k$ the running time of the backtracking matching algorithm will double.
+
+\begin{example}
+Let's have a regular expression $(a|aa)^*\$$ ~\cref{fig:rex}. The corresponding NFA $A$ is hyper-vulnerable since
+there exist paths $\pi_1 = (q,a,q),(q,a,q)$ and $\pi_2 = (q,a,q_0),(q_0,a,q)$ labelled with the same symbols.
+%
+1) Both runs start and end in the pivot state $q$, 2) $q$ is reachable from $q_0$, and 3) there exists a way from $q$
+to rejecting state $q_r$.
+\end{example}
+
+Based on the analysis, an attack automaton 
+$A^{E} = A_p \cdot (A_1 \cap A_2) \cdot \overline{A_s}$
+ which represents all attack strings for the given regular expression
+such that $A_p$ accepts all prefixes of $A$ which end up in $q$; 
+%
+$A_s$ accepts all suffixes starting from $q$ and end up in $q_r$,
+%
+and $A_1$ (resp. $A_2$) corresponds to a set of paths that loop back to $q$.
+
+%
+Even though it is considered to be a static analyzer it also uses dynamic analysis
+% 
+to avoid generating false positives.
+%
+During the additional analysis, it determines for each regular expression 
+a lower bound on the length $k$ of any possible attack string.
+%
+In addition to the analysis, it also inducts sanitization-aware taint analysis at the source code level.
+%
+Even, it could be successful in case of a certain group of regexes,
+it is not able to handle regexes with extended grammars.
 
 
 
 
+%%%  
+% RXXR
+%%%%
+A tool RXXR2~\cite{rxxr2thesis, rxxr2} creates an e-NFA from a given regex and 
+then it search for instances of a pattern
+in the e-NFA using an efficient pattern matching algorithm.
+%
+Similarly to Rexploiter, it is unable to parse extended regexes.
+
+\begin{figure}
+  %\ \\[-10mm]
+  \vspace{-3mm}
+  \hspace{-10mm}
+  \begin{center}
+    \includegraphics[height=2.6cm,keepaspectratio]{figures/rex1.png}
+  \end{center}
+\caption{Left: NFA for $(a|aa)^*\$$; Right: Attack automaton}
+  \label{fig:rex}
+\end{figure}
+
+
+
+%
+While, dynamic ReDoS generators conduct actual regex matching and
+use the profiling results to improve next iteration of text generating, 
+e.g., fuzzing~\cite{fuzzing}. 
+%
+Thus, they usually easily handles regex extensions
+and reports only true positive ReDoS input strings. 
+%
+However, the main drawback of the dynamic generators is that
+they are much more time and space consuming so they may
+miss ReDoS vulnerabilities in case of complex regexes due
+to the time or space limits.
+%
+
+
+%%%  
+% SlowFuzz
+%%%%
+\emph{
+To the best know tools using dynamic fuzzing belongs
+SlowFuzz~\cite{slowfuzz}.
+%
+The base of the tool is a evolutionary fuzzer ~\cite{libfuzz}
+ to search for those inputs that can trigger a
+large number of edges in the control flow graph of the program
+under testing. 
+%
+However,  SlowFuzz has
+no knowledge about regex structures, and this fact can cause some
+deep states of the program unreachable, leading to false negatives.}
+
+\emph{
+A tool SDLFuzzer is another dynamic fuzzer for ReDoS detection~\cite{}.
+%
+It was developed by Bryan Sullivan from Microsoft in 2010. 
+%
+However, this tool has no longer been maintained and has no further update
+since then. 
+%
+Therefore, the tool does not support many extended
+regex grammars, e.g., lookarounds, named groups, atomic groups,
+back-references, and lazy or possessive quantifiers.
+}
+
+
+
+%%%  
+% Rescue
+%%%%
+In between these tools, there exist tools that combine both dynamic and static techniques,
+e.g. Rescue~\cite{rescue}, which use that both the static information about the regex
+and the genetic search to guide the subsequent genetic search.
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Generating ReDos Attack}\label{sec:genText}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section, we explain the algorithm for generating an eval text. The algorithm searches for optimal runs $\pi_i$ in a search space of the underlying automaton $\aut$. The optimal run is the shortest run $\pi$ such that:
+
+\begin{itemize}
+ \item starts in the initial state $q_0$;
+\item explores as many unvisited states as possible;
+\item finishes in a state such that:
+   \begin{itemize}
+     \item is rejected by $\aut$, and
+	\item all its successors are either final states, or visited states.
+      \end{itemize}
+ \end{itemize}
+
+To gain the intuition how the text is generated, let's have a deterministic automaton $\aut$. 
+%
+The output will be lines of text such that each line corresponds to the labels of the run $\pi_i$.
+%
+We start in the initial state of $\aut$ $q_0$ since most of the matchers usually use optimization which allow them to skip a no-matching part of the input text.
+%
+
+We iterate over the transition leading from the initial state $q_0$ and choose the best successors according to the given criteria. 
+%
+We skip states that are not final. 
+%
+The reason behind this is that most of the backtracking tools try to find the match and if they do not succeed 
+%
+they conduct a backtracking search to find whether there exists any other path that matches the given input string.
+%
 
  \begin{figure}[t]
 %\vspace{-3mm}
@@ -2400,37 +2658,6 @@ value 0 there).
 \vspace*{-7mm}
 \end{figure}
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Generating Eval Text}\label{sec:genText}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-In this section, we explain the algorithm for generating an eval text. The algorithm searches for optimal runs $\pi_i$ in a search space of the underlying automaton $\aut$. The optimal run is the shortest run $\pi$ such that:
-
-\begin{itemize}
- \item starts in the initial state $q_0$;
-\item explores as many unvisited states as possible;
-\item finishes in a state such that:
-   \begin{itemize}
-     \item is rejected by $\aut$, and
-	\item all its successors are either final states, or visited states.
-      \end{itemize}
- \end{itemize}
-
-To gain the intuition how the text is generated, let's have a deterministic automaton $\aut$. 
-%
-The output will be lines of text such that each line corresponds to the labels of the run $\pi_i$.
-%
-We start in the initial state of $\aut$ $q_0$ since most of the matchers usually use optimization which allow them to skip a no-matching part of the input text.
-%
-
-We iterate over the transition leading from the initial state $q_0$ and choose the best successors according to the given criteria. 
-%
-We skip states that are not final. 
-%
-The reason behind this is that most of the backtracking tools try to find the match and if they do not succeed 
-%
-they conduct a backtracking search to find whether there exists any other path that matches the given input string.
-%
 
 %
 The next requirement for the successor it that it is not already visited since our goal is 
@@ -2764,107 +2991,144 @@ available at~\blinded{\cite{chipmunk}}
 %\fi
 %for details how to efficiently implement
 %{\CSA}s)
-and evaluated its capability of generating text causing 
- against other
-state-of-the-art regex matchers on patterns that use the counting operator.
-We focused on comparison against
+and evaluated its capability of generating text causing efficiency problem (ReDoS attack)
+for the state-of-the-art regex matchers on patterns that use the counting operator.
+We use the following matchers':
 Google's \retwo library~\cite{re2}%
 \footnote{%
   We used the version 2019-01-01 of \retwo via the command line interface \texttt{re2g} from
   \url{https://github.com/akamai/re2g}.
-}, an automata-based matcher designed to be fast, predictable, and resilient against ReDoS attacks.
-We also include other three efficient matchers into the comparison, namely
-the standard GNU \grep program~\cite{grep} (version~3.3),
-the \dotnet standard library regex matcher from
-\texttt{System.Text.RegularExpressions}~\cite{dotnet}, and
-Symbolic Regex Matcher (\srm)~\cite{VSXW19}.
-
-%Let us shortly summarize how the tools work.
-%The main algorithms of
-%\retwo and \grep implement optimized versions of the Thompson's on-the-fly
-%determinization where the constructed DFA states are cached.
-%The construction has a~bound on the size of the DFA---if the bound is reached,
-%the so-far constructed DFA states are flushed to avoid consuming too much
-%memory.
-%In some situations when caching is found ineffectual, \retwo turns the caching
-%off,
-%and the performance can drop even lower 
-% (see the description in~\cite{regexes-in-the-wild} for details).
-%We note that \retwo rejects an input regex if it contains a~counting
-%operator with a~bound bigger than 1,000.
-%%
-%\srm is based on \emph{symbolic derivatives} constructed on the fly, 
-%also in the spirit of the Thompson's algorithm, and, likewise, bases its efficiency
-%on caching
-%(in fact, \srm is quite close to an implementation of the Thompson's
-%algorithm over CAs with caching).
-%The~\dotnet matcher uses a~backtracking algorithm over NFAs, while
-%%
-%our \catool eagerly constructs a~deterministic CsA for the input regex.
-%%
-%The former four are mature tools, and especially \retwo and \grep contain many high- and low-level
-%optimizations, such as using the Boyer-Moore algorithm~\cite{BoyerM77} to skip
-%over many characters that are known to not be a~part of a~match.
-%%
-%\retwo and \grep are compiled programs while \catool, \srm, and
-%\dotnet run within the .NET Framework (therefore, they have some inherent
-%overhead due to the \emph{just-in-time} compilation at start-up and its
-%inability to use advanced code optimizations, as well as 
-%garbage collection). 
-%%
-%Note that even though the tools based on the on-the-fly subset construction (\retwo, \grep, and \srm) are linear to the lenght of the text, they still take space exponential to the counter bounds in the worst case, by creating sets of the size linear to the counter bounds, exponential to their decadic encoding used in the regex. 
+}, 
 %
-%We run our benchmarks on a~machine with the Intel(R) Xeon(R) CPU E3-1240 v3 @
-%3.40\,GHz running Debian GNU/Linux (we use the Mono
-%platform~\cite{mono} to run .NET~tools).
-%To avoid issues with generating exact matches,
-%which might differ for different tools,
-%the tools were run in the setting where they counted the number of lines
-%matching\footnote{%
-%We consider the standard semantics of ``matching'' used by \texttt{grep}, i.e.,
-%a~line matches a~regex~$R$ if it contains a~string that is in~$\langof R$, unless it
-%contains start-of-line (\texttt{\^}) or end-of-line (\texttt{\$}) anchors, in which
-%case the matched string needs to occur at the start and/or at the end of the
-%line respectively.
-%}
-%\mbox{the given regex (e.g.\ the \texttt{-c} flag of \grep).}
+the standard GNU \grep program~\cite{grep} (version~3.3),
+%
+the \dotnet standard library regex matcher from
+\texttt{System.Text.RegularExpressions}~\cite{dotnet}, 
+%
+and Symbolic Regex Matcher (\srm)~\cite{VSXW19}.
+
+Let us shortly summarize how the tools work.
+The main algorithms of
+\retwo and \grep implement optimized versions of the Thompson's on-the-fly
+determinization where the constructed DFA states are cached.
+The construction has a~bound on the size of the DFA---if the bound is reached,
+the so-far constructed DFA states are flushed to avoid consuming too much
+memory.
+In some situations when caching is found ineffectual, \retwo turns the caching
+off,
+and the performance can drop even lower 
+ (see the description in~\cite{regexes-in-the-wild} for details).
+We note that \retwo rejects an input regex if it contains a~counting
+operator with a~bound bigger than 1,000.
+%
+\srm is based on \emph{symbolic derivatives} constructed on the fly, 
+also in the spirit of the Thompson's algorithm, and, likewise, bases its efficiency
+on caching
+(in fact, \srm is quite close to an implementation of the Thompson's
+algorithm over CAs with caching).
+The~\dotnet matcher uses a~backtracking algorithm over NFAs, while
+%
+our \catool eagerly constructs a~deterministic CsA for the input regex.
+%
+The former four are mature tools, and especially \retwo and \grep contain many high- and low-level
+optimizations, such as using the Boyer-Moore algorithm~\cite{BoyerM77} to skip
+over many characters that are known to not be a~part of a~match.
+%
+\retwo and \grep are compiled programs while \catool, \srm, and
+\dotnet run within the .NET Framework (therefore, they have some inherent
+overhead due to the \emph{just-in-time} compilation at start-up and its
+inability to use advanced code optimizations, as well as 
+garbage collection). 
+%
+Note that even though the tools based on the on-the-fly subset construction (\retwo, \grep, and \srm) are linear to the length of the text, they still take space exponential to the counter bounds in the worst case, by creating sets of the size linear to the counter bounds, exponential to their decadic encoding used in the regex. 
+
+
+We compare our tool against the-state-of-the-art generators that are mainly focused on backtracking matchers, namely
+%
+\rex~\cite{rex}, \regexStatic~\cite{regexStatic}, and \rexploiter~\cite{rexploiter}.
+%
+These generators use different algorithms to generating the eval text.
+%
+
+The detectors may consume excessive time while analysing the regex and generating the eval text,
+%
+hence, we limited the generators to 10 minutes.
+% 
+Notice, that all of these tools are research prototypes, so they do not support all regex featerues.
+
+
+%
+The detectors generate the output text in a form of \emph{prefix}, \emph{pump} and \emph{sufix}.
+%
+To test the accuracy of each generator's predicted eval text, we run the state-of-the-art matchers on the generated text.
+%
+First, to determine the number of pumps we should to create the input text from the generated output of the generators
+%
+we measure how long each regex take to match a sequence of malign inputs with varying numbers of pumps. 
+%
+The number of pumps ranges from 1, 10, 100, ..., 100.000 pumps. 
+%
+At the end, we decided to set the number of pumps to 100.000 pumps.
+%
+These number of pumps was sufficient to cause that the regex match took more than 10 seconds on a match.
+
+
+We run our benchmarks on a~machine with the Intel(R) Xeon(R) CPU E3-1240 v3 @
+3.40\,GHz running Debian GNU/Linux (we use the Mono
+platform~\cite{mono} to run .NET~tools).
+To avoid issues with generating exact matches,
+which might differ for different tools,
+the tools were run in the setting where they counted the number of lines
+matching\footnote{%
+We consider the standard semantics of ``matching'' used by \texttt{grep}, i.e.,
+a~line matches a~regex~$R$ if it contains a~string that is in~$\langof R$, unless it
+contains start-of-line (\texttt{\^}) or end-of-line (\texttt{\$}) anchors, in which
+case the matched string needs to occur at the start and/or at the end of the
+line respectively.
+}
+\mbox{the given regex (e.g.\ the \texttt{-c} flag of \grep).}
 
 
 %
 %\plotfigure
+
+%*******************************************************************************
+\vspace{-0.0mm}
+\subsection{ReDoS Resiliency}\label{sec:exp_redos}
+\vspace{-0.0mm}
+%*******************************************************************************
+Our main experiment focuses on generation text which causes a ReDoS attack.
+The regexes used for this experiment were selected (1) from the database of over
+500,000 real-world regexes coming
 %
-%%*******************************************************************************
-%\vspace{-0.0mm}
-%\subsection{ReDoS Resiliency}\label{sec:exp_redos}
-%\vspace{-0.0mm}
-%%*******************************************************************************
-%Our main experiment focuses on the resilience of the matching engines
-%against ReDoS attacks.
-%The regexes used for this experiment were selected (1) from the database of over
-%500,000 real-world regexes coming
-%%
-%from an Internet-wide analysis of regexes collected from over 190,000 software
-%projects~\cite{DavisMCSL19}; 
-%(2) from databases of regexes used by \emph{network intrusion detection systems} 
-%(NIDSes), in particular, Snort~\cite{snort},
-%Bro~\cite{bro},
-%Sagan~\cite{sagan}, and the academic
-%papers~\cite{yang2010,tacas18-appred};
-%(4) the RegExLib database of regexes~\cite{regexlib}; and
-%(5) industrial regexes from~\cite{aplas19}, used for security purposes.
-%\mbox{From these, we created our set of benchmarks by the following steps:}
-%%
-%\begin{enumerate}[(1)]
-%  \item  We selected regexes that contained counting loops whose
-%    sum of upper bounds was larger than~20.
-%    This let us focus on regexes where the use of counting makes
-%    sense (there are surprisingly many regexes occurring in practice where the
-%    use of a~counting loop is unnecessary, e.g., regexes containing
-%    sub-expressions similar to \regex{a\{0,1\}} or even just \regex{a\{1\}}).
-%    Moreover, we also removed all except 26 regexes with counters bigger than
-%    1,000, which cannot be handled by \retwo.
-%    We left the 26 regexes as representatives of ``large'' counters.
-%    This left us with 5,000 regexes.
+from an Internet-wide analysis of regexes collected from over 190,000 software
+projects~\cite{DavisMCSL19}; 
+(2) from databases of regexes used by \emph{network intrusion detection systems} 
+(NIDSes), in particular, Snort~\cite{snort},
+Bro~\cite{bro},
+Sagan~\cite{sagan}, and the academic
+papers~\cite{yang2010,tacas18-appred};
+(4) the RegExLib database of regexes~\cite{regexlib} which is a website dedicated to regexes for various DSLs; 
+(5) regexes from posts on stackoverflow~\cite{stack}; and
+(6) industrial regexes from~\cite{aplas19}, used for security purposes.
+From these, we created our set of benchmarks by the following steps:
+%
+\begin{enumerate}[(1)]
+  \item From all the regexes, there were 88,000 regexes containing a counting operator. 
+  We filter 2,080 regexes with sub-expressions similar to \regex{a\{0,1\}} or even just \regex{a\{1\}}
+  (there are surprisingly many of these occurring in practice where the
+    use of a~counting loop is unnecessary).
+\cbstart
+  \item Then, we filtered 7,980 regexes that contain nested counting (\emph{We do not want to bother with them.})
+  and 7,100 regestes that are not supported by our tool (containing lookarounds $(?=)$, $(?!)$, $(?<!)$, backreferences $\backslash 1$, non-capturing groups $(?:)$, lazy quantifiers $??$, $*?$, ${}?$, , $+?$, possessive quantifiers $?+$, $*+$, $++$, ${}*$), and other unsupported symbols, such as $\backslash b$, $\backslash h$, $\backslash g$, $\backslash p$, $\backslash B$, $\backslash G$, $\backslash P$, etc..
+\cbstart
+  \item  We selected regexes that contained counting loops whose
+    sum of upper bounds was larger than~20.
+    This let us focus on regexes where the use of counting makes
+    sense.
+    Moreover, we also removed 17 regexes with counters bigger than
+    2,147,483,647, which cannot be handled by our tool.
+    This left us with \emph{5,300} regexes.
 %\cbstart
 %  \item  Then, we filtered out regexes~$R$ such that either $\CA(R)$ was not uniform 
 %   (i.e., the \CSA produced by our algorithm was not precise, cf. \cref{sec:correctness}), 
@@ -2874,22 +3138,37 @@ Symbolic Regex Matcher (\srm)~\cite{VSXW19}.
 %    a vast majority,
 %    4,429 
 %    of the regexes, remained. 
-%\cbend
-%  \item  For the regexes that remained, we used a~lightweight ReDoS generator designed to
-%    exploit counting (cf.~\cref{sec:redos_gen}) to generate $\sim$10\,MiB long
-%    input texts.
-%    In particular, we managed to generate ``adversarial'' input texts for
-%    1,789 
-%    regexes (for the rest of the regexes, either the underlying state space was
-%    too small, so the generator could not construct the text, or the generation hit the
-%    timeout of 600\,s).
-%    Our benchmark data set is available at~\cite{oopsla20-dataset}.
-%\end{enumerate}
-%%
-%We ran all tools on the generated benchmarks (counting the number of lines of
-%the input text matching the regex) and give scatter plots comparing the running
+\end{enumerate}
+
+Our generator $\catool$ generates an evil text in a form of one to several lines of text. 
+%
+The generating phase finished after timeout expered or the whole state space is explored.
+%
+Then, we make multitimes copies of the text to create $\sim$10\,MiB long
+ input texts for the matchers.
+%
+From all benchmarks, there were \emph{34} regexes where the generator hit the timeout of 10 minutes.
+%
+This was caused not by the counters but rather by many ``\regex{|}'' and ``\regex{?}'' operators.    
+
+
+
+\subsection{Running Matchers}
+We ran all tools on the generated benchmarks (counting the number of lines of
+the input text matching the regex).
+%
+The timeout was set to 5 s. If the matcher needs more than 5 seconds to match the input text
+%
+we consider the input text to be a ReDoS attack.
+%
+We merged the results according to the techniques that the matcher used (backtracking, \dots).
+%
+
+
+%and give scatter plots comparing the running
 %times of the tools in \cref{fig:ca-vs-re2} and \cref{fig:ca-vs-tools} (the
 %timeout was 600\,s).
+
 %On the bottom and the left-hand side of every plot, there are rug plots
 %illustrating the distribution of the data points.
 %Note that the axes are logarithmic, so the difference between data points grows
