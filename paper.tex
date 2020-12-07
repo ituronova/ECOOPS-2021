@@ -1225,1137 +1225,1137 @@ CAs constructed from regexes by the algorithm in \cref{sec:regexes} will be simp
 %formal development more closely.
 %\end{ex}
 
-%\vspace{-4mm}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{From a Regex to a CA via Conditional Partial Derivatives} \label{sec:regexes}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-We introduce a generalization of the Antimirov's partial derivative construction
-\cite{Antimirov96_partderivatives} to \emph{symbolic} counting, which allows one
-to replace a verbose NFA by a succinct CA. 
-The difference between the older variant of \cite{Antimirov96_partderivatives} with \emph{explicit} counting~\cite{VSXW19} and our new version  was already illustrated in \cref{sec:overview}. To recall it briefly using the example of the regex \regex{\DOT\{100\}}: 
-from 100 partial derivatives $\CD{\DOT}{\regex{\DOT\{i\}}} =
-\regex{\DOT\{i-1\}}$, $1\leq i \leq 100$, and an NFA with 100 states and
-transitions $\move{\regex{\DOT\{i\}}}{\DOT}{\regex{\DOT\{i-1\}}}$, the new
-construction will take us to the single derivative
-$\CD{\DOT}{\regex{\DOT\{100\}}} = \{\regex{\DOT\{100\}}\}$ associated with a
-conditional counter update which induce an NFA with a single state and the transition $\move{\regex{\DOT\{100\}}}{\alpha , \IncrOp[c]}{\regex{\DOT\{100\}}}$.  
-
-We apply the construction on regexes that are normalized using the below rules
-where $X\rewrites Y$ denotes that $X$ is rewritten to $Y$:\begin{itemize}
-
-  \item All nested concat nodes are rewritten to the flattened
-  right-associative \emph{list form}, which is always maintained throughout the
-  construction, using the rules: $(X\cdot Y)\cdot Z \rewrites X\cdot(Y\cdot Z)$,
-  $\emp\cdot Z \rewrites Z$, and $Z\cdot\emp\rewrites Z$.
-
-  \item If $S$ is \emph{nullable}, then  $S\{\ell,k\}\rewrites S\{0,k\}$.
-  Moreover, in the nullable context $S\{0,k\}$, $S$ can be considered as if it
-  was not nullable.
-
-\end{itemize}
-%
-Observe that the normalization does not increase the size of the
-regex (it may decrease the size).
-
-Let $R$ be a fixed normalized regex.
-%
-A subexpression of $R$ that is of the form $X=S\{\ell,k\}$ is called
-a~\emph{counting loop}.
-%
-We consider each counting loop to represent a \emph{counter} whose name is the
-counting loop itself and whose \emph{upper bound} is $\MAX{X} = k$ and
-\emph{lower bound} is $\MIN{X} = \ell$.
-%
-For example, $\mathtt{(\DOT\{9\}){*}}$ contains the counter
-$X={\mathtt{\DOT\{9\}}}$ with $\MIN{X}=\MAX{X}=9$.
-%
-In the following, let $C$ stand for the set of all counters that occur in $R$,
-also denoted by $\COUNTERS{R}$.
-
-We use the convention that the juxtaposition $XY$ of normalized regexes $X$ and
-$Y$ is again a normalized regex of the equivalent concat node $X\cdot Y$: e.g.,
-if $X=a\cdot b$ and $Y=(a\cdot b){*}$, then $XY =a\cdot (b\cdot (a \cdot
-b){*})$. Observe in particular that $X\emp = X$. In other words, we treat
-concatenated elements as sequences, and a singleton sequence equals to the
-element itself.
-
-Our construction will work over the set $\Sigma=\Minterms{R}$ of minterms of $R$ and produce simple CA that use minterms of $\Sigma$ on transitions. 
-
-%==============================================================================
-\subsection{Parametric Languages}
-%==============================================================================
-
-\begin{wrapfigure}[10]{r}{80mm}
-\hspace*{-4mm}\begin{minipage}{84mm}
-\vspace*{-6mm}
-\begin{eqnarray}
-  \label{eq:EPS} \LANG{\mem}{\emp} &\eqdef & \{\eps\} \\
-  \LANG{\mem}{\psi Z} & \eqdef & \den{\psi}\cdot\LANG{\mem}{Z} \\
-  \LANG{\mem}{(W|Y) Z} &\eqdef &  \LANG{\mem}{WZ} \cup  \LANG{\mem}{YZ} \\
-  \label{eq:STAR} \LANG{\mem}{S{*}Z} &\eqdef & \LANG{\mem}{S}^* \cdot\LANG{\mem}{Z}\\
-  \label{eq:COUNTING} \LANG{\mem}{S\{\ell,k\}Z} &\eqdef& 
-    \LANG{\mem}{S}\cdot\LANG{\IncrOp[S\{\ell,k\}](\mem)}{S\{\ell,k\}Z} \cup\\
-    \nonumber & & \LANG{\ExitOp[S\{\ell,k\}](\mem)}{Z} \\
-  \label{eq:BOT} \LANG{\bot}{X}&\eqdef& \emptyset \quad (\textrm{for all $X$})
-\end{eqnarray}
-\end{minipage}
-\end{wrapfigure}
-%
-We define the language of a normalized regex starting with a counting loop
-relative to a counter value. For that, we lift the definition of languages to be
-parametric in counter memories $\mem$, but regexes other than the above are
-treated as before with the memory $\mem$ passed through unchanged.
-
-Recall that if $f$ is a counter operator and $\mem$ a counter memory, then
-$\Update{f}(\mem)$ denotes the appropriately updated memory where
-$\Update{f}(\mem)=\bot$ when $f$ is not enabled in $\mem$. 
-%
-Below, if there is a single counter $c \in C$ such that $f(c) \neq \NoOp$, we
-sometimes identify $f$ with $\Op[c]$ and use $\Op[c](\mem)$ to represent the
-updated memory $\Update{f}(\mem)$.
-%
-Specifically, $\IncrOp[X]$ (if enabled) increments the counter value of $X$ by
-1, and $\ExitOp[X]$ (if enabled) resets the counter value of $X$ to 0.
-%
-Let $\mem$ be a counter memory. 
-%
-Then Cases~(\ref{eq:EPS})--(\ref{eq:BOT}) define the \emph{parametric languages}
-of regexes.
-%
-The intuition behind Case~(\ref{eq:STAR}) is that all counters that may be
-present in $S$ are inactive on the level of $S{*}$.
-%
-Note also that Case~(\ref{eq:COUNTING}) is well-defined since, for $X =
-S\{\ell,k\}$ and $\mem'=\IncrOp[X](\mem)$, $k-\mem'(X) < k-\mem(X)$ if
-$\mem(X)< k$, and $\mem'=\bot$ if $\mem(X)= k$. 
-
-Let $\memInit \eqdef \blambda c.0$ denote the initial memory that maps all
-counters to 0.
-%
-The following below, proven in
-\ifTR
-Appendix~\ref{app:thmLANG},
-\else
-\cite{OOPSLA20TR},
-\fi
-relates
-$\LANG{\mem}{R}$ with the non-parametric definition of regular languages.
-
-\begin{theorem}
- \label{thm:LANG}
- Let $R$ be a normalized regex. Then $\LANG{\memInit}{R}=\langof{R}$.
-\end{theorem}
-
-%==============================================================================
-\subsection{Conditional Derivation}
-%==============================================================================
-
-We will now introduce our conditional derivative construction
-formally.  
-
-A \emph{partial conditional derivative} is a pair $\pair{f}{X}$ where $f$ is a
-counter operator and $X$ a normalized regex.
-%
-Given a counter memory $\mem$, we let $\pair{f}{X}$ define the language
-$\LANG{\mem}{\pair{f}{X}} \eqdef \LANG{\Update{f}(\mem)}{X}$.
-%
-In other words, $f$ is first applied to the counter memory $\mem$ and then the
-regex is evaluated in the updated memory.
-%
-If $f$ is not enabled in $\mem$, then the denoted language is empty.
-
-A \emph{conditional derivative} is a finite set of partial conditional
-derivatives.
-%
-The language defined by a conditional derivative $D$ in a counter memory $\mem$
-is defined as the union of the languages of the partial conditional derivatives
-in $D$: $\LANG{\mem}{D} \eqdef \bigcup_{d\in D} \LANG{\mem}{d}$.
-
-To define how conditional derivatives of a given regex looks like, we need a
-notion of a \emph{sequential composition} of conditional derivatives $D \otimes
-E \eqdef \{ \pair{f{\seqcomp}g}{X{\cdot}Y} \mid \pair{f}{X}\in D, \pair{g}{Y}\in
-E, f {\seqcomp} g\neq \bot\}$ where $f{\seqcomp}g\neq\bot$ is the composed
-counter operator such that $\Update{f{\seqcomp}g}(\mem) =
-\Update{g}(\Update{f}(\mem))$.
-%
-The case when $f {\seqcomp} g = \bot$ is discussed later on.
-
-\newcommand{\derivdef}{%
-\begin{wrapfigure}[10]{r}{76mm}
-\begin{minipage}{76mm}
-\vspace*{-1.5mm}
-\begin{eqnarray*}
-  \CD{\alpha}{\emp} &\eqdef & \emptyset \\
-  \CD{\alpha}{\pred{\psi}Z} & \eqdef &
-  \BraceIfThenElse{\textrm{$\alpha\wedge\psi$ is satisfiable}}
-    {\spair{\id}{Z}}{\emptyset} \\
-  \CD{\alpha}{(W|Y)Z} &\eqdef & \CD{\alpha}{WZ} \cup \CD{\alpha}{YZ} \\
-  \CD{\alpha}{S{*}Z} &\eqdef & \CD{\alpha}{S} \otimes \spair{\id}{S{*}Z} \cup
-    \CD{\alpha}{Z}\\
-  \CD{\alpha}{XZ} &\eqdef &
-  \CD{\alpha}{S}\otimes\{\pair{\IncrOp[X]}{XZ}\}\; \cup\\
-    & & \spair{\ExitOp[X]}{\emp} \otimes \CD{\alpha}{Z}
-\end{eqnarray*}
-\end{minipage}
-\end{wrapfigure}}
-
-Conditional derivatives of a normalized regex are defined as shown on the right
-assuming that concatenations $X{\cdot}Y$ are normalized to the list form
-explained above, $\alpha\in\Sigma$, $\id$ denotes the identity function
-$\boldsymbol{\lambda} x.x$, and $X=S\{\ell,k\}$ is a counting loop.
-%
-Observe that, in $\CD{\alpha}{S}\otimes\{\pair{\IncrOp[X]}{XZ}\}$, the operation
-$\IncrOp[X]$ gets composed with $\NoOp[X]$, yielding $\IncrOp[X]$ again, because
-$S\{\ell,k\}$ cannot occur in $S$.
-%
-It is possible that in $\spair{\ExitOp[X]}{\emp} \otimes \CD{\alpha}{Z}$, 
-$X$ is in scope of $Z$ (e.g., $Z$ starts with $X$).
-%
-The composition can then contain the operation $\ExitOp[X]\seqcomp \IncrOp[X]$
-that corresponds to $\ExitIncrOp[X]$ because $\IncrOp[X]$ is trivially 
-%%%%%%%%%%%%%%%%%%%
-\derivdef 
-%%%%%%%%%%%%%%%%%%%
-enabled
-when the counter value of $X$ is 0.
-%
-The only other possible composition of individual operations that can appear in
-this case is $\ExitOp[X]{\seqcomp}\ExitOp[X]$.
-%
-If $\MIN{X}=0$, $\ExitOp[X]{\seqcomp}\ExitOp[X] = \ExitOp[X]$, which is
-well-defined because $\ExitOp[X]$ is always enabled for $\MIN{X}=0$.
-%
-If $\MIN{X}>0$, then $\ExitOp[X]{\seqcomp}\ExitOp[X]$ is undefined, and
-$\ExitOp[X]{\seqcomp}\ExitOp[X]$ does not contribute anything to the
-composition.
-%
-However, this is correct since $X$ is not nullable, and the second $\ExitOp[X]$
-is not enabled after the counter value of $X$ is reset to $0$.
-%
-Intuitively, \mbox{the second occurrence of $X$ cannot be exited without iterating $X$
-at least once. } 
-
-\begin{ex} 
-Consider the regex $R=\texttt{\DOT{*}a\{1,3\}a\{1,3\}a}$. Let $X$ be
-the counting loop $\texttt{a\{1,3\}}$. $R$ has two minterms $\texttt{a}$ and
-$\texttt{[{\caret}a]}$. We get the following conditional derivatives of $R$,
-starting with the case for $\CD{\alpha}{S{*}Z}$ due to the normal form
-assumption:
-%
-\begin{eqnarray*}
-  \CD{\texttt{a}}{R} &=& \CD{\texttt{a}}{\DOT}\otimes \spair{\id}{R} \cup 
-    \CD{\texttt{a}}{XX\texttt{a}} \\
-  &=& \{ \pair{\id}{R}, \pair{\IncrOp[X]}{XX\texttt{a}},
-    \pair{\ExitIncrOp[X]}{X\texttt{a}} \} \\
-  \CD{\texttt{a}}{XX\texttt{a}} &=& \CD{\texttt{a}}{\texttt{a}} \otimes 
-    \spair{\IncrOp[X]}{XX\texttt{a}} \cup 
-    \spair{\ExitOp[X]}{\emp}\otimes\CD{\texttt{a}}{X\texttt{a}} \\
-  &=& \spair{\IncrOp[X]}{XX\texttt{a}} \cup \spair{\ExitOp[X]}{\emp}\otimes 
-    \{\pair{\IncrOp[X]}{X\texttt{a}},\pair{\ExitOp[X]}{\emp}\} \\
-  &=& \{\pair{\IncrOp[X]}{XX\texttt{a}}, \pair{\ExitIncrOp[X]}{X\texttt{a}}\} \\
-  \CD{\texttt{a}}{X\texttt{a}} &=& \CD{\texttt{a}}{\texttt{a}} \otimes 
-    \spair{\IncrOp[X]}{X\texttt{a}}
-    \cup \spair{\ExitOp[X]}{\emp}\otimes\CD{\texttt{a}}{\texttt{a}} \\
-  &=& \{\pair{\IncrOp[X]}{X\texttt{a}},\pair{\ExitOp[X]}{\emp}\} \\
-  \CD{\texttt{a}}{\texttt{a}} = \CD{\texttt{a}}{\DOT} = 
-    \CD{\texttt{[{\caret}a]}}{\DOT} &=& \spair{\id}{\emp} \\
-  \CD{\texttt{[{\caret}a]}}{\texttt{a}} &=& \emptyset
-\end{eqnarray*}
-
-\noindent Above, the composition $\ExitOp[X]\seqcomp\ExitOp[X]$ in
-$\CD{\texttt{a}}{XX\texttt{a}}$ is undefined and thus removed. We also get that
-$\CD{\texttt{[{\caret}a]}}{R} = \spair{\id}{R}$ where
-$\CD{\texttt{[{\caret}a]}}{\texttt{a}}=\emptyset$ and consequently
-$\CD{\texttt{[{\caret}a]}}{XX\texttt{a}} = \emptyset$ and
-$\CD{\texttt{[{\caret}a]}}{X\texttt{a}} = \emptyset$.
-
-If we now consider, for example, the language defined by
-$\CD{\texttt{a}}{X\texttt{a}}$ in a valid counter memory $\mem$, it is the union
-of the languages $\LANG{\IncrOp[X](\mem)}{X\texttt{a}}$ and
-$\LANG{\ExitOp[X](\mem)}{\emp}$.  These correspond to the cases of continuing to
-iterate the loop $X$ (if the counter value of $X$ is below $3$) or exiting the
-loop (if the counter value of $X$ is at least 1) and accepting $\{\eps\}$.
-\end{ex}
-
-
-\begin{wrapfigure}[10]{r}{41mm}
-    \vspace*{-3mm}
-\hspace*{2mm}
-\begin{minipage}{29mm}
-    %\vspace*{-2mm}
-    \hspace*{-2mm}
-    \includegraphics[width=3.6cm,keepaspectratio]{figures/dot9star_TB.pdf}
-  \vspace*{-6mm}
-\end{minipage}
-  \caption{\label{fig:dot9star}$\CA(\regex{(\DOT\leftbrace9\rightbrace)*})$}%, with notation as in \cref{fig:ak:nondet}.}
-\end{wrapfigure}
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% UGLY HACK!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\paragraph{\it Example \arabic{section}.\arabic{theorem}.\,}
-\stepcounter{theorem}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\!Consider the regex
-\texttt{(\DOT\leftbrace9\rightbrace)*},
-whose CA is in
-\cref{fig:dot9star}. 
-Here,  {\DOT} is the only input
-predicate and denotes the set of all characters.
-%
-We explain the use of some of the counter operations in the CA of
-\cref{fig:dot9star} 
-by showing how they arise through the
-partial-derivative-based construction of {\CA}s as discussed above. 
-%
-The initial
-state is the regex itself. The (only) partial derivative of the state
-\texttt{(\DOT\leftbrace9\rightbrace)*} is
-\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*} where the body
-of the counting loop is exited but also incremented once, so $\ExitIncrOp$ is
-applied to $c$ under the guard $\CanExit{c}$ (which is shown as $c\geq
-9/ c{:=}1$ in the figure). 
- The state
-\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*} has \mbox{two cases
-of partial derivatives both leading back to
-\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*}. }
-
-
-
-The first
-case is when $c < 9$ ($\CanIncr{c}$ holds), in which case $c$ is
-incremented (shown as \ $c< 9/ c\mathtt{++}$ in the figure). The
-second case is when the counting loop is conditionally nullable and is exited
-under the condition  $\CanExit{c}$ (i.e. $c\geq 9$), the value of $c$ is
-reset to 0, and then $c$ is incremented as a result of taking the partial
-derivative of \texttt{(\DOT\leftbrace9\rightbrace)*}.  Thus, $\ExitIncrOp$
-arises as a sequential composition of exiting the loop, followed by resetting
-the counter to $0$, and then incrementing it. Therefore, $\CanExit{c}$ must
-hold, while the increment condition holds trivially after a reset to $0$.  The
-initial state is unconditionally final in 
-%Figure~\ref{fig:9k}(a), 
-\cref{fig:dot9star}, 
-while the
-other state is final only when $\CanExit{c}$ holds as marked by ``$F:$''.
-\qed
-\medskip
-
-We now state the correctness theorem of conditional derivatives.
-%
-For that, we define $\CanExit{R}$ as the predicate shown above for a
-normalized regex $R$, assuming that $X$ stands for a counting loop.
-\[
-\CanExit{R}\eqdef
-\left\{
-\begin{array}{ll}
-  \top_{\CC} & \textrm{if $R=\emp$,}\\
-  \CanExit{Z} & \textrm{else if $R=YZ$ and $Y$ is nullable,}\\
-    \CanExit{X}\wedge\CanExit{Z} &\textrm{else if $R=XZ$,}\\
-  \bot_{\CC} & \textrm{otherwise.}
-\end{array}
-\right.
-\]
-%
-Note that $Y$ above may also be a counting loop.
-%
-However, since it is nullable, $\MIN{Y}$ must be $0$, and then $\CanExit{Y}$ is
-always true.
-%
-(If $\MIN{Y}>0$, then $Y$ cannot be nullable as $R$ is normalized.)
-
-We further need the following additional notions too.
-%
-A counter $X$ \emph{is visible in} $R$ if either $R=YZ$ and $X=Y$, or else if
-$X$ does not occur in $Y$ and $X$ is visible in $Z$.
-%
-A counter memory $\mem$ is \emph{valid for} $R$ if $\mem(X)=0$ for all invisible
-counters $X$ that occur in $R$.
-%
-Correctness of the construction of conditional derivatives is stated in
-Theorem~\ref{theorem:CD}---see
-\ifTR
-Appendix~\ref{app:thmCD}
-\else
-\cite{OOPSLA20TR}
-\fi
-for a detailed proof. 
-
-
-\begin{theorem}
-  \label{theorem:CD}
-Let $R$ be a normalized regex and let $\Sigma = \Minterms{\Theta}$
-where $\Theta$ is some finite superset of $\REpreds{R}$. 
-  If $\mem$ is valid for $R$, then
-  $\LANG{\mem}{R} = \bigcup_{\alpha\in\Sigma}\den{\alpha}\cdot
-  \LANG{\mem}{\CD{\alpha}{R}}\cup\{\eps\mid \mem\models\CanExit{R}\}$.
-\end{theorem}
-
-%==============================================================================
-\subsection{Constructing CAs from Conditional Derivatives}\label{sec:ca-construction}
-%==============================================================================
-
-We convert a normalized regex $R$ to the counting automaton $\CA(R)$ whose set
-of states is the smallest set containing $R$ as the initial state and all those
-regexes that arise in conditional derivatives constructed from $R$ by repeated
-derivation wrt $\Sigma$.
-%
-Given a state represented by a regex $S$, for each $\alpha\in\Sigma$ and each
-partial conditional derivative $\pair{f}{T} \in \CD{\alpha}{S}$, there is a
-transition $\move{S}{\alpha,f}{T}$ in $\CA(R)$.
-%
-The \emph{final condition} $F(S)$ of a state $S$ of $\CA(R)$ is $\CanExit{S}$.
-Observe that $F(S)=\bot_\CC$ when $S$ is not nullable and has no visible
-counters, which corresponds to the classical case.
-
-As shown in
-\ifTR
-Appendix~\ref{appThmDeriv}
-\else
-\cite{OOPSLA20TR}
-\fi
-the following result can be proved using
-Theorem~\ref{theorem:CD}.
-
-\begin{theorem}
-\label{thm:deriv}
-Let $R$ be a normalized regex and $A=\NFAof{\CA(R)}$.
-Then, for all $\pair{\mem}{S}\in Q_A$,
-$\Lq[A]{\pair{\mem}{S}} = \LANG{\mem}{S}$.
-\end{theorem}
-
-The construction of $\CA(R)$ terminates, and the number of states of $\CA(R)$ is
-linear in $\LEAFCNT{R}$.
-
-\begin{theorem}
-  \label{theorem:SIZE}
-  Let $R$ be a normalized regex. Then $|Q_{\CA(R)}|\leq\LEAFCNT{R}+1$.
-\end{theorem}
-
-A proof of Theorem~\ref{theorem:SIZE} is in
-\ifTR
-Appendix~\ref{app:theorem:SIZE}.
-\else
-\cite{OOPSLA20TR}.
-\fi
-We get the following final correctness result as a corollary of
-Theorem~\ref{thm:deriv}, Theorem~\ref{thm:LANG}, and Theorem~\ref{theorem:SIZE}.
-
-\begin{corollary}
-  \label{cor:deriv}
-Let $R$ be a normalized regex. Then $\langof{R}  = \langof{\CA(R)}$.
-\end{corollary}
-
-\begin{proof}
-  First, $Q_{\CA(R)}$ is finite, and thus well-defined by using Theorem~\ref{theorem:SIZE}.
-  Use Theorem~\ref{thm:deriv} with 
-  $\pair{\mem}{S}$ as the initial state $\pair{\memInit}{R}$ of $A$.
-  It follows that $\langof{A} = \LANG{\memInit}{R}$.
-  Then use Theorem~\ref{thm:LANG} for $\LANG{\memInit}{R}=\langof{R}$
-and $\langof{\CA(R)}=\langof{A}$ holds by definition.
-\end{proof}
-
-A further important aspect of $\CA(R)$ is that,
-although the number of input minterms may potentially be exponential
-in the number of predicates in $R$, in the case of predicates being
-represented as a finite union of intervals (as is done typically for
-character classes), the size of a single predicate representation can
-be estimated to be proportional to the number of interval borders in
-the union.  In this case, the total size of all the minterms remains
-linear in the total size of all the predicates because the total
-number of interval borders will remain the same in minterms as in the
-original set of predicates.  In other words, mintermization based on
-character classes does not blow up the number of transition in
-$\CA(R)$. We have also validated this fact experimentally.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{From Counting Automata to Counting-Set Automata} \label{sec:algo-idea}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-{\CA}s obtained through conditional derivatives as shown in the previous section
-are nondeterministic.
-%
-As one of the main contributions of this work, we now propose an approach for
-determinizing them into a form that can be used efficiently for regex matching. 
-%
-The approach from which we start and to which we contrast our new method is the
-naive determinization of {\CA}s to DFAs:
-%
-The given CA is first converted to its underlying NFA, by making the counter
-memories an explicit part of control states.
-%
-The NFA is in turn determinized by the textbook subset construction. 
-
-Already the first step, the construction of the NFA, oftentimes explodes since
-it sacrifices the succinctness of symbolic counters (it is linear to the counter
-bounds).
-%
-This initial blow-up is then much amplified in the subset construction, which is
-exponential to the size of the NFA and hence also to the counter bounds (as,
-e.g., in the case of the regex \regex{\DOT*a\DOT\{$k$\}} with its CA
-in~\cref{fig:ak:nondet}).
-
-Our answer to this problem is a direct determinization of the CA into a novel type
-of automata, which we call \emph{counting-set automata ({\CSA}s)}.
-%
-Control states of counting-set automata produced by our determinization are
-essentially the states of the corresponding DFA but with the counter memories
-removed.
-%
-In order to be able to simulate a run of the DFA, they  are equipped with
-special registers that can hold \emph{sets} of integers, and they use them to
-compute the right counter memories at runtime.
-%
-This completely avoids the state space explosion of the naive construction
-caused by wiring counter memories into control states.
-%
-Moreover, the simulation is fast because all the manipulations with a
-counting set can be done in constant time. 
-
-%==============================================================================
-\subsection{Counting-Set Automata}
-%==============================================================================
-\label{sec:CsA}
-
-We now formalize the idea of counting-set automata outlined above.  We
-use the notion of a~combined Boolean algebra $\IICCS$, which allows us to
-manipulate pairs of predicates from the input algebra $\II$ and the
-counting-set algebra $\CCS$. For the purposes of this paper, we assume
-that predicates in $\PRED_{\IICCS}$ have the form $\alpha\wedge\beta$
-where $\alpha\in\PRED_{\II}$ and $\beta\in\PRED_{\CCS}$. The conjuction
-$(\alpha\wedge\beta)\wedge_{\IICCS}(\alpha'\wedge\beta')$ has the usual meaning
-of $(\alpha\wedge_{\II}\alpha')\wedge(\beta\wedge_{\CCS}\beta')$ and
-$\alpha\wedge\beta$ \mbox{is satisfiable if both $\alpha$ and $\beta$ are
-satisfiable in their respective algebras.}
-
-%------------------------------------------------------------------------------
-\paragraph{Counting sets.}
-%------------------------------------------------------------------------------
-
-We consider a set-based interpretation of counters where the value of a counter
-$c$ is a \emph{finite set} rather than a single value. 
-%
-A counter under such an interpretation is referred to as a \emph{counting set}.
-%
-A \emph{(counting-)set memory} for $C$ is a function $\smem : C \rightarrow
-\PowerSetNE{\nat}$ such that, for all $c\in C$, $\MaxOf{\smem(c)} \leq
-\MAX{c}$.\footnote{We write $\PowerSetNE{X}$ for the powerset of $X$ restricted
-to finite nonempty sets.}
-%
-Observe that the set of all set memories for $C$ is \emph{finite}.
-%
-Counting-set predicates over $C$ form an effective Boolean algebra $\CCS_C$ called
-the \emph{counting-set algebra over $C$}, 
-also denoted just $\CCS$ when $C$ is clear from the context, 
-whose domain $\DOM_{\CCS}$ is the set
-of all set memories for $C$.
-%
-The set of predicates $\PRED_{\CCS}$ is the Boolean closure of the basic
-predicates $\CanIncrS{c}$ and $\CanExitS{c}$, hence syntactically the same as in
-the counter algebra $\CC$, but with a different semantics under $\CCS$:
-%
-$$\smem\models \CanExitS{c} \Iff \MaxOf{\smem(c)} \geq \MIN{c}
-\quad\textrm{and}\quad \smem\models\CanIncrS{c}\Iff \MinOf{\smem(c)} < \MAX{c}$$
-where $\MinOf\cdot$ and $\MaxOf{\cdot}$ are the set minimum and maximum,
-respectively. 
-%
-Intuitively, the conditions test existence of a set element satisfying the same counter condition.
-
-%------------------------------------------------------------------------------
-\paragraph{Counting-set automata.}
-%------------------------------------------------------------------------------
-A \emph{counting-set automaton} (\CSA) is a tuple $A =
-(\II,C,Q,q_0,\FinCond{},\Delta)$ where:
-%
-$\II$~is an effective Boolean algebra called the \emph{input algebra}.
-%
-$C$ is a finite set of \emph{counters} associated with the counting-set algebra
-$\CCS$.
-%
-$Q$ is a finite set of \emph{states} with $q_0\in Q$ being the \emph{initial
-state}.
-%
-$\FinCond{}: Q\rightarrow\PRED_{\CCS}$ is the \emph{final-state condition}.
-%
-$\Delta \subseteq Q\times\PRED_{\IICCS}\times(C \rightarrow \PowerSet{\OPS})\times Q$ is a finite set of \emph{transitions}.
-% 
-The second component is its \emph{guard}.
-The third component is the
-\emph{counting-set operator} in which $\OPS = \{\IncrCSOp, \NoCSOp, \ExitCSOp,
-\ExitIncrCSOp\}$ is the set of \emph{counting-set operations}.
-%
-They are essentially counter operations lifted to sets 
-(note the use of the larger initial letters to distinguish them from the counter operations).
-We also use the different names 
- $\ExitCSOp$ and
-$\ExitIncrCSOp$ for the lifting of
-$\ExitOp$ and $\ExitIncrOp$ 
-to stress their different usage
-(not only for exiting a loop but also for initialisation when entering the
-loop as will become clear in \cref{eq:caoptocsa}). 
-\cbstart
-Sets of counting-set operations assigned to every counter by the counting-set operator are called \emph{combined (counting-set) operations}.
-\cbend
-
-The {\CSA} $A$ is \emph{deterministic} iff the following holds for every two transitions 
-$\move p {\psi_1, f_1} {q_1}$ and  $\move p {\psi_2, f_2} {q_2}$ in $\Delta$: 
-if $\psi_1 \wedge \psi_2$ 
-is satisfiable, then $f_1 = f_2$ and $q_1 = q_2$.
-
-%------------------------------------------------------------------------------
-\paragraph{Semantics of {\CSA}s.}
-%------------------------------------------------------------------------------
-
-The semantics of an indexed counting-set operation $\Op[c] \in \OPS$ is the set
-transformer $\update{\Op[c]}$ defined as follows:   
-%
-$$
-\begin{array}{r@{\ =\ }lr@{\ =\ }l}
-\update{\IncrCSOp[c]} & \blambda S.\{n+1\mid n\in S \land n < \MAX{c}\} & \update{\ExitCSOp[c]} & \blambda S.\{0\}\\
-\update{\NoCSOp[c]} &\blambda S.S & \update{\ExitIncrCSOp[c]} & \blambda S.\{1\}
-\end{array}
-$$
-%
-Then, the counting-set operator $f:C\rightarrow\PowerSet{\OPS}$ is assigned the
-counting-set-memory transformer $\Update{f}:\DOM_{\CCS}\rightarrow\DOM_{\CCS}$
-defined as follows: 
-%
- $$ \Update{f}(\smem) \eqdef \blambda c.\left\{ \begin{array}{ll} \bigcup_{\Op\in f(c)}
- \update{\Op[c]}(\smem(c)) & \text{if}\ f(c)\neq \emptyset \\ \{0\} &
- \text{if}\ f(c)=  \emptyset \end{array} \right.  $$
-%
-That is, (1) if $f(c)\neq \emptyset$, then the value $\smem(c)$ of each counting
-set $c$ is transformed into the union of the counting sets that result from
-applying the operations from $f(c)$ on $\smem(c)$, and
-%
-(2) if $f(c) = \emptyset$, then $c$ is implicitly reset to $\{0\}$ (an implicit $\ExitCSOp$). 
-Our determinization procedure creates such transitions when the value of $c$ is irrelevant 
-(when $c$ is a dead variable). 
-
-Note that, unlike counter operators of a CA, a counting-set operator $f$ does
-not induce any guard.
-%
-The guard is rather a separate component of the transition.
-%
-This is because CsA transitions produced in the CA-to-CsA determinization need
-guards that are partially independent of the operations of $f$.
-%
-In particular, we will we need to distinguish cases such as
-$\neg\CanExit{c}\wedge\CanIncr{c}$, $\CanExit{c}\wedge\neg\CanIncr{c}$, or
-$\CanExit{c}\wedge\CanIncr{c}$.
-%
-The guard hence cannot be induced by $f$ alone. 
-
-Note also that, unlike in CAs, the updates are defined for \emph{indexed}
-operations.
-%
-The reason is that the semantics of the $\IncrCSOp$ operation is restricted to
-never produce values greater than $\MAX{c}$.
-
-Finally, the \emph{language of the CsA} $A$ is defined through its 
-%
-underlying  \emph{configuration FA}, $\NFAof{A}$, as $\langof{A} :=
-\langof{\NFAof{A}}$.
-%
-The states of $\NFAof{A}$ are \emph{configurations} of $A$, namely, tuples of
-the form $(q,\smem) \in Q \times \DOM_{\CCS}$ consisting of a state $q$ and a
-counting-set memory~$\smem$.
-%
-There are finitely many such configurations.
-%
-The initial state of $\NFAof{A}$ is the \emph{initial configuration}
-$(q_0,\{c\mapsto\{0\}\}_{c\in C})$~of~$A$.
-%
-A~transition $\tau=\move p {\alpha\land\beta, f} q\in \Delta$ is \emph{enabled} in a
-configuration $(p,\smem)$ iff $\alpha$ is satisfiable and
-$\smem\in\den[\CCS]{\beta}$, meaning that $\smem$ satisfies the counter guard $\beta$.
-If $\tau$ is enabled in $(p,\smem)$, then $\NFAof{A}$ contains the transition
-$\move{(p,\smem)} {\alpha} {(q,\Update{f}(\smem))}$. 
+%%\vspace{-4mm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{From a Regex to a CA via Conditional Partial Derivatives} \label{sec:regexes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%We introduce a generalization of the Antimirov's partial derivative construction
+%\cite{Antimirov96_partderivatives} to \emph{symbolic} counting, which allows one
+%to replace a verbose NFA by a succinct CA. 
+%The difference between the older variant of \cite{Antimirov96_partderivatives} with \emph{explicit} counting~\cite{VSXW19} and our new version  was already illustrated in \cref{sec:overview}. To recall it briefly using the example of the regex \regex{\DOT\{100\}}: 
+%from 100 partial derivatives $\CD{\DOT}{\regex{\DOT\{i\}}} =
+%\regex{\DOT\{i-1\}}$, $1\leq i \leq 100$, and an NFA with 100 states and
+%transitions $\move{\regex{\DOT\{i\}}}{\DOT}{\regex{\DOT\{i-1\}}}$, the new
+%construction will take us to the single derivative
+%$\CD{\DOT}{\regex{\DOT\{100\}}} = \{\regex{\DOT\{100\}}\}$ associated with a
+%conditional counter update which induce an NFA with a single state and the transition $\move{\regex{\DOT\{100\}}}{\alpha , \IncrOp[c]}{\regex{\DOT\{100\}}}$.  
+%
+%We apply the construction on regexes that are normalized using the below rules
+%where $X\rewrites Y$ denotes that $X$ is rewritten to $Y$:\begin{itemize}
+%
+%  \item All nested concat nodes are rewritten to the flattened
+%  right-associative \emph{list form}, which is always maintained throughout the
+%  construction, using the rules: $(X\cdot Y)\cdot Z \rewrites X\cdot(Y\cdot Z)$,
+%  $\emp\cdot Z \rewrites Z$, and $Z\cdot\emp\rewrites Z$.
+%
+%  \item If $S$ is \emph{nullable}, then  $S\{\ell,k\}\rewrites S\{0,k\}$.
+%  Moreover, in the nullable context $S\{0,k\}$, $S$ can be considered as if it
+%  was not nullable.
+%
+%\end{itemize}
+%%
+%Observe that the normalization does not increase the size of the
+%regex (it may decrease the size).
+%
+%Let $R$ be a fixed normalized regex.
+%%
+%A subexpression of $R$ that is of the form $X=S\{\ell,k\}$ is called
+%a~\emph{counting loop}.
+%%
+%We consider each counting loop to represent a \emph{counter} whose name is the
+%counting loop itself and whose \emph{upper bound} is $\MAX{X} = k$ and
+%\emph{lower bound} is $\MIN{X} = \ell$.
+%%
+%For example, $\mathtt{(\DOT\{9\}){*}}$ contains the counter
+%$X={\mathtt{\DOT\{9\}}}$ with $\MIN{X}=\MAX{X}=9$.
+%%
+%In the following, let $C$ stand for the set of all counters that occur in $R$,
+%also denoted by $\COUNTERS{R}$.
+%
+%We use the convention that the juxtaposition $XY$ of normalized regexes $X$ and
+%$Y$ is again a normalized regex of the equivalent concat node $X\cdot Y$: e.g.,
+%if $X=a\cdot b$ and $Y=(a\cdot b){*}$, then $XY =a\cdot (b\cdot (a \cdot
+%b){*})$. Observe in particular that $X\emp = X$. In other words, we treat
+%concatenated elements as sequences, and a singleton sequence equals to the
+%element itself.
+%
+%Our construction will work over the set $\Sigma=\Minterms{R}$ of minterms of $R$ and produce simple CA that use minterms of $\Sigma$ on transitions. 
+%
+%%==============================================================================
+%\subsection{Parametric Languages}
+%%==============================================================================
+%
+%\begin{wrapfigure}[10]{r}{80mm}
+%\hspace*{-4mm}\begin{minipage}{84mm}
+%\vspace*{-6mm}
+%\begin{eqnarray}
+%  \label{eq:EPS} \LANG{\mem}{\emp} &\eqdef & \{\eps\} \\
+%  \LANG{\mem}{\psi Z} & \eqdef & \den{\psi}\cdot\LANG{\mem}{Z} \\
+%  \LANG{\mem}{(W|Y) Z} &\eqdef &  \LANG{\mem}{WZ} \cup  \LANG{\mem}{YZ} \\
+%  \label{eq:STAR} \LANG{\mem}{S{*}Z} &\eqdef & \LANG{\mem}{S}^* \cdot\LANG{\mem}{Z}\\
+%  \label{eq:COUNTING} \LANG{\mem}{S\{\ell,k\}Z} &\eqdef& 
+%    \LANG{\mem}{S}\cdot\LANG{\IncrOp[S\{\ell,k\}](\mem)}{S\{\ell,k\}Z} \cup\\
+%    \nonumber & & \LANG{\ExitOp[S\{\ell,k\}](\mem)}{Z} \\
+%  \label{eq:BOT} \LANG{\bot}{X}&\eqdef& \emptyset \quad (\textrm{for all $X$})
+%\end{eqnarray}
+%\end{minipage}
+%\end{wrapfigure}
+%%
+%We define the language of a normalized regex starting with a counting loop
+%relative to a counter value. For that, we lift the definition of languages to be
+%parametric in counter memories $\mem$, but regexes other than the above are
+%treated as before with the memory $\mem$ passed through unchanged.
+%
+%Recall that if $f$ is a counter operator and $\mem$ a counter memory, then
+%$\Update{f}(\mem)$ denotes the appropriately updated memory where
+%$\Update{f}(\mem)=\bot$ when $f$ is not enabled in $\mem$. 
+%%
+%Below, if there is a single counter $c \in C$ such that $f(c) \neq \NoOp$, we
+%sometimes identify $f$ with $\Op[c]$ and use $\Op[c](\mem)$ to represent the
+%updated memory $\Update{f}(\mem)$.
+%%
+%Specifically, $\IncrOp[X]$ (if enabled) increments the counter value of $X$ by
+%1, and $\ExitOp[X]$ (if enabled) resets the counter value of $X$ to 0.
+%%
+%Let $\mem$ be a counter memory. 
+%%
+%Then Cases~(\ref{eq:EPS})--(\ref{eq:BOT}) define the \emph{parametric languages}
+%of regexes.
+%%
+%The intuition behind Case~(\ref{eq:STAR}) is that all counters that may be
+%present in $S$ are inactive on the level of $S{*}$.
+%%
+%Note also that Case~(\ref{eq:COUNTING}) is well-defined since, for $X =
+%S\{\ell,k\}$ and $\mem'=\IncrOp[X](\mem)$, $k-\mem'(X) < k-\mem(X)$ if
+%$\mem(X)< k$, and $\mem'=\bot$ if $\mem(X)= k$. 
+%
+%Let $\memInit \eqdef \blambda c.0$ denote the initial memory that maps all
+%counters to 0.
+%%
+%The following below, proven in
+%\ifTR
+%Appendix~\ref{app:thmLANG},
+%\else
+%\cite{OOPSLA20TR},
+%\fi
+%relates
+%$\LANG{\mem}{R}$ with the non-parametric definition of regular languages.
+%
+%\begin{theorem}
+% \label{thm:LANG}
+% Let $R$ be a normalized regex. Then $\LANG{\memInit}{R}=\langof{R}$.
+%\end{theorem}
+%
+%%==============================================================================
+%\subsection{Conditional Derivation}
+%%==============================================================================
+%
+%We will now introduce our conditional derivative construction
+%formally.  
+%
+%A \emph{partial conditional derivative} is a pair $\pair{f}{X}$ where $f$ is a
+%counter operator and $X$ a normalized regex.
+%%
+%Given a counter memory $\mem$, we let $\pair{f}{X}$ define the language
+%$\LANG{\mem}{\pair{f}{X}} \eqdef \LANG{\Update{f}(\mem)}{X}$.
+%%
+%In other words, $f$ is first applied to the counter memory $\mem$ and then the
+%regex is evaluated in the updated memory.
+%%
+%If $f$ is not enabled in $\mem$, then the denoted language is empty.
+%
+%A \emph{conditional derivative} is a finite set of partial conditional
+%derivatives.
+%%
+%The language defined by a conditional derivative $D$ in a counter memory $\mem$
+%is defined as the union of the languages of the partial conditional derivatives
+%in $D$: $\LANG{\mem}{D} \eqdef \bigcup_{d\in D} \LANG{\mem}{d}$.
+%
+%To define how conditional derivatives of a given regex looks like, we need a
+%notion of a \emph{sequential composition} of conditional derivatives $D \otimes
+%E \eqdef \{ \pair{f{\seqcomp}g}{X{\cdot}Y} \mid \pair{f}{X}\in D, \pair{g}{Y}\in
+%E, f {\seqcomp} g\neq \bot\}$ where $f{\seqcomp}g\neq\bot$ is the composed
+%counter operator such that $\Update{f{\seqcomp}g}(\mem) =
+%\Update{g}(\Update{f}(\mem))$.
+%%
+%The case when $f {\seqcomp} g = \bot$ is discussed later on.
+%
+%\newcommand{\derivdef}{%
+%\begin{wrapfigure}[10]{r}{76mm}
+%\begin{minipage}{76mm}
+%\vspace*{-1.5mm}
+%\begin{eqnarray*}
+%  \CD{\alpha}{\emp} &\eqdef & \emptyset \\
+%  \CD{\alpha}{\pred{\psi}Z} & \eqdef &
+%  \BraceIfThenElse{\textrm{$\alpha\wedge\psi$ is satisfiable}}
+%    {\spair{\id}{Z}}{\emptyset} \\
+%  \CD{\alpha}{(W|Y)Z} &\eqdef & \CD{\alpha}{WZ} \cup \CD{\alpha}{YZ} \\
+%  \CD{\alpha}{S{*}Z} &\eqdef & \CD{\alpha}{S} \otimes \spair{\id}{S{*}Z} \cup
+%    \CD{\alpha}{Z}\\
+%  \CD{\alpha}{XZ} &\eqdef &
+%  \CD{\alpha}{S}\otimes\{\pair{\IncrOp[X]}{XZ}\}\; \cup\\
+%    & & \spair{\ExitOp[X]}{\emp} \otimes \CD{\alpha}{Z}
+%\end{eqnarray*}
+%\end{minipage}
+%\end{wrapfigure}}
+%
+%Conditional derivatives of a normalized regex are defined as shown on the right
+%assuming that concatenations $X{\cdot}Y$ are normalized to the list form
+%explained above, $\alpha\in\Sigma$, $\id$ denotes the identity function
+%$\boldsymbol{\lambda} x.x$, and $X=S\{\ell,k\}$ is a counting loop.
+%%
+%Observe that, in $\CD{\alpha}{S}\otimes\{\pair{\IncrOp[X]}{XZ}\}$, the operation
+%$\IncrOp[X]$ gets composed with $\NoOp[X]$, yielding $\IncrOp[X]$ again, because
+%$S\{\ell,k\}$ cannot occur in $S$.
+%%
+%It is possible that in $\spair{\ExitOp[X]}{\emp} \otimes \CD{\alpha}{Z}$, 
+%$X$ is in scope of $Z$ (e.g., $Z$ starts with $X$).
+%%
+%The composition can then contain the operation $\ExitOp[X]\seqcomp \IncrOp[X]$
+%that corresponds to $\ExitIncrOp[X]$ because $\IncrOp[X]$ is trivially 
+%%%%%%%%%%%%%%%%%%%%
+%\derivdef 
+%%%%%%%%%%%%%%%%%%%%
+%enabled
+%when the counter value of $X$ is 0.
+%%
+%The only other possible composition of individual operations that can appear in
+%this case is $\ExitOp[X]{\seqcomp}\ExitOp[X]$.
+%%
+%If $\MIN{X}=0$, $\ExitOp[X]{\seqcomp}\ExitOp[X] = \ExitOp[X]$, which is
+%well-defined because $\ExitOp[X]$ is always enabled for $\MIN{X}=0$.
+%%
+%If $\MIN{X}>0$, then $\ExitOp[X]{\seqcomp}\ExitOp[X]$ is undefined, and
+%$\ExitOp[X]{\seqcomp}\ExitOp[X]$ does not contribute anything to the
+%composition.
+%%
+%However, this is correct since $X$ is not nullable, and the second $\ExitOp[X]$
+%is not enabled after the counter value of $X$ is reset to $0$.
+%%
+%Intuitively, \mbox{the second occurrence of $X$ cannot be exited without iterating $X$
+%at least once. } 
+%
+%\begin{ex} 
+%Consider the regex $R=\texttt{\DOT{*}a\{1,3\}a\{1,3\}a}$. Let $X$ be
+%the counting loop $\texttt{a\{1,3\}}$. $R$ has two minterms $\texttt{a}$ and
+%$\texttt{[{\caret}a]}$. We get the following conditional derivatives of $R$,
+%starting with the case for $\CD{\alpha}{S{*}Z}$ due to the normal form
+%assumption:
+%%
+%\begin{eqnarray*}
+%  \CD{\texttt{a}}{R} &=& \CD{\texttt{a}}{\DOT}\otimes \spair{\id}{R} \cup 
+%    \CD{\texttt{a}}{XX\texttt{a}} \\
+%  &=& \{ \pair{\id}{R}, \pair{\IncrOp[X]}{XX\texttt{a}},
+%    \pair{\ExitIncrOp[X]}{X\texttt{a}} \} \\
+%  \CD{\texttt{a}}{XX\texttt{a}} &=& \CD{\texttt{a}}{\texttt{a}} \otimes 
+%    \spair{\IncrOp[X]}{XX\texttt{a}} \cup 
+%    \spair{\ExitOp[X]}{\emp}\otimes\CD{\texttt{a}}{X\texttt{a}} \\
+%  &=& \spair{\IncrOp[X]}{XX\texttt{a}} \cup \spair{\ExitOp[X]}{\emp}\otimes 
+%    \{\pair{\IncrOp[X]}{X\texttt{a}},\pair{\ExitOp[X]}{\emp}\} \\
+%  &=& \{\pair{\IncrOp[X]}{XX\texttt{a}}, \pair{\ExitIncrOp[X]}{X\texttt{a}}\} \\
+%  \CD{\texttt{a}}{X\texttt{a}} &=& \CD{\texttt{a}}{\texttt{a}} \otimes 
+%    \spair{\IncrOp[X]}{X\texttt{a}}
+%    \cup \spair{\ExitOp[X]}{\emp}\otimes\CD{\texttt{a}}{\texttt{a}} \\
+%  &=& \{\pair{\IncrOp[X]}{X\texttt{a}},\pair{\ExitOp[X]}{\emp}\} \\
+%  \CD{\texttt{a}}{\texttt{a}} = \CD{\texttt{a}}{\DOT} = 
+%    \CD{\texttt{[{\caret}a]}}{\DOT} &=& \spair{\id}{\emp} \\
+%  \CD{\texttt{[{\caret}a]}}{\texttt{a}} &=& \emptyset
+%\end{eqnarray*}
+%
+%\noindent Above, the composition $\ExitOp[X]\seqcomp\ExitOp[X]$ in
+%$\CD{\texttt{a}}{XX\texttt{a}}$ is undefined and thus removed. We also get that
+%$\CD{\texttt{[{\caret}a]}}{R} = \spair{\id}{R}$ where
+%$\CD{\texttt{[{\caret}a]}}{\texttt{a}}=\emptyset$ and consequently
+%$\CD{\texttt{[{\caret}a]}}{XX\texttt{a}} = \emptyset$ and
+%$\CD{\texttt{[{\caret}a]}}{X\texttt{a}} = \emptyset$.
+%
+%If we now consider, for example, the language defined by
+%$\CD{\texttt{a}}{X\texttt{a}}$ in a valid counter memory $\mem$, it is the union
+%of the languages $\LANG{\IncrOp[X](\mem)}{X\texttt{a}}$ and
+%$\LANG{\ExitOp[X](\mem)}{\emp}$.  These correspond to the cases of continuing to
+%iterate the loop $X$ (if the counter value of $X$ is below $3$) or exiting the
+%loop (if the counter value of $X$ is at least 1) and accepting $\{\eps\}$.
+%\end{ex}
+%
+%
+%\begin{wrapfigure}[10]{r}{41mm}
+%    \vspace*{-3mm}
+%\hspace*{2mm}
+%\begin{minipage}{29mm}
+%    %\vspace*{-2mm}
+%    \hspace*{-2mm}
+%    \includegraphics[width=3.6cm,keepaspectratio]{figures/dot9star_TB.pdf}
+%  \vspace*{-6mm}
+%\end{minipage}
+%  \caption{\label{fig:dot9star}$\CA(\regex{(\DOT\leftbrace9\rightbrace)*})$}%, with notation as in \cref{fig:ak:nondet}.}
+%\end{wrapfigure}
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% UGLY HACK!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\paragraph{\it Example \arabic{section}.\arabic{theorem}.\,}
+%\stepcounter{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\!Consider the regex
+%\texttt{(\DOT\leftbrace9\rightbrace)*},
+%whose CA is in
+%\cref{fig:dot9star}. 
+%Here,  {\DOT} is the only input
+%predicate and denotes the set of all characters.
+%%
+%We explain the use of some of the counter operations in the CA of
+%\cref{fig:dot9star} 
+%by showing how they arise through the
+%partial-derivative-based construction of {\CA}s as discussed above. 
+%%
+%The initial
+%state is the regex itself. The (only) partial derivative of the state
+%\texttt{(\DOT\leftbrace9\rightbrace)*} is
+%\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*} where the body
+%of the counting loop is exited but also incremented once, so $\ExitIncrOp$ is
+%applied to $c$ under the guard $\CanExit{c}$ (which is shown as $c\geq
+%9/ c{:=}1$ in the figure). 
+% The state
+%\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*} has \mbox{two cases
+%of partial derivatives both leading back to
+%\texttt{\DOT\leftbrace9\rightbrace(\DOT\leftbrace9\rightbrace)*}. }
+%
+%
+%
+%The first
+%case is when $c < 9$ ($\CanIncr{c}$ holds), in which case $c$ is
+%incremented (shown as \ $c< 9/ c\mathtt{++}$ in the figure). The
+%second case is when the counting loop is conditionally nullable and is exited
+%under the condition  $\CanExit{c}$ (i.e. $c\geq 9$), the value of $c$ is
+%reset to 0, and then $c$ is incremented as a result of taking the partial
+%derivative of \texttt{(\DOT\leftbrace9\rightbrace)*}.  Thus, $\ExitIncrOp$
+%arises as a sequential composition of exiting the loop, followed by resetting
+%the counter to $0$, and then incrementing it. Therefore, $\CanExit{c}$ must
+%hold, while the increment condition holds trivially after a reset to $0$.  The
+%initial state is unconditionally final in 
+%%Figure~\ref{fig:9k}(a), 
+%\cref{fig:dot9star}, 
+%while the
+%other state is final only when $\CanExit{c}$ holds as marked by ``$F:$''.
+%\qed
+%\medskip
+%
+%We now state the correctness theorem of conditional derivatives.
+%%
+%For that, we define $\CanExit{R}$ as the predicate shown above for a
+%normalized regex $R$, assuming that $X$ stands for a counting loop.
+%\[
+%\CanExit{R}\eqdef
+%\left\{
+%\begin{array}{ll}
+%  \top_{\CC} & \textrm{if $R=\emp$,}\\
+%  \CanExit{Z} & \textrm{else if $R=YZ$ and $Y$ is nullable,}\\
+%    \CanExit{X}\wedge\CanExit{Z} &\textrm{else if $R=XZ$,}\\
+%  \bot_{\CC} & \textrm{otherwise.}
+%\end{array}
+%\right.
+%\]
+%%
+%Note that $Y$ above may also be a counting loop.
+%%
+%However, since it is nullable, $\MIN{Y}$ must be $0$, and then $\CanExit{Y}$ is
+%always true.
+%%
+%(If $\MIN{Y}>0$, then $Y$ cannot be nullable as $R$ is normalized.)
+%
+%We further need the following additional notions too.
+%%
+%A counter $X$ \emph{is visible in} $R$ if either $R=YZ$ and $X=Y$, or else if
+%$X$ does not occur in $Y$ and $X$ is visible in $Z$.
+%%
+%A counter memory $\mem$ is \emph{valid for} $R$ if $\mem(X)=0$ for all invisible
+%counters $X$ that occur in $R$.
+%%
+%Correctness of the construction of conditional derivatives is stated in
+%Theorem~\ref{theorem:CD}---see
+%\ifTR
+%Appendix~\ref{app:thmCD}
+%\else
+%\cite{OOPSLA20TR}
+%\fi
+%for a detailed proof. 
+%
+%
+%\begin{theorem}
+%  \label{theorem:CD}
+%Let $R$ be a normalized regex and let $\Sigma = \Minterms{\Theta}$
+%where $\Theta$ is some finite superset of $\REpreds{R}$. 
+%  If $\mem$ is valid for $R$, then
+%  $\LANG{\mem}{R} = \bigcup_{\alpha\in\Sigma}\den{\alpha}\cdot
+%  \LANG{\mem}{\CD{\alpha}{R}}\cup\{\eps\mid \mem\models\CanExit{R}\}$.
+%\end{theorem}
+%
+%%==============================================================================
+%\subsection{Constructing CAs from Conditional Derivatives}\label{sec:ca-construction}
+%%==============================================================================
+%
+%We convert a normalized regex $R$ to the counting automaton $\CA(R)$ whose set
+%of states is the smallest set containing $R$ as the initial state and all those
+%regexes that arise in conditional derivatives constructed from $R$ by repeated
+%derivation wrt $\Sigma$.
+%%
+%Given a state represented by a regex $S$, for each $\alpha\in\Sigma$ and each
+%partial conditional derivative $\pair{f}{T} \in \CD{\alpha}{S}$, there is a
+%transition $\move{S}{\alpha,f}{T}$ in $\CA(R)$.
+%%
+%The \emph{final condition} $F(S)$ of a state $S$ of $\CA(R)$ is $\CanExit{S}$.
+%Observe that $F(S)=\bot_\CC$ when $S$ is not nullable and has no visible
+%counters, which corresponds to the classical case.
+%
+%As shown in
+%\ifTR
+%Appendix~\ref{appThmDeriv}
+%\else
+%\cite{OOPSLA20TR}
+%\fi
+%the following result can be proved using
+%Theorem~\ref{theorem:CD}.
+%
+%\begin{theorem}
+%\label{thm:deriv}
+%Let $R$ be a normalized regex and $A=\NFAof{\CA(R)}$.
+%Then, for all $\pair{\mem}{S}\in Q_A$,
+%$\Lq[A]{\pair{\mem}{S}} = \LANG{\mem}{S}$.
+%\end{theorem}
+%
+%The construction of $\CA(R)$ terminates, and the number of states of $\CA(R)$ is
+%linear in $\LEAFCNT{R}$.
+%
+%\begin{theorem}
+%  \label{theorem:SIZE}
+%  Let $R$ be a normalized regex. Then $|Q_{\CA(R)}|\leq\LEAFCNT{R}+1$.
+%\end{theorem}
+%
+%A proof of Theorem~\ref{theorem:SIZE} is in
+%\ifTR
+%Appendix~\ref{app:theorem:SIZE}.
+%\else
+%\cite{OOPSLA20TR}.
+%\fi
+%We get the following final correctness result as a corollary of
+%Theorem~\ref{thm:deriv}, Theorem~\ref{thm:LANG}, and Theorem~\ref{theorem:SIZE}.
+%
+%\begin{corollary}
+%  \label{cor:deriv}
+%Let $R$ be a normalized regex. Then $\langof{R}  = \langof{\CA(R)}$.
+%\end{corollary}
+%
+%\begin{proof}
+%  First, $Q_{\CA(R)}$ is finite, and thus well-defined by using Theorem~\ref{theorem:SIZE}.
+%  Use Theorem~\ref{thm:deriv} with 
+%  $\pair{\mem}{S}$ as the initial state $\pair{\memInit}{R}$ of $A$.
+%  It follows that $\langof{A} = \LANG{\memInit}{R}$.
+%  Then use Theorem~\ref{thm:LANG} for $\LANG{\memInit}{R}=\langof{R}$
+%and $\langof{\CA(R)}=\langof{A}$ holds by definition.
+%\end{proof}
+%
+%A further important aspect of $\CA(R)$ is that,
+%although the number of input minterms may potentially be exponential
+%in the number of predicates in $R$, in the case of predicates being
+%represented as a finite union of intervals (as is done typically for
+%character classes), the size of a single predicate representation can
+%be estimated to be proportional to the number of interval borders in
+%the union.  In this case, the total size of all the minterms remains
+%linear in the total size of all the predicates because the total
+%number of interval borders will remain the same in minterms as in the
+%original set of predicates.  In other words, mintermization based on
+%character classes does not blow up the number of transition in
+%$\CA(R)$. We have also validated this fact experimentally.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{From Counting Automata to Counting-Set Automata} \label{sec:algo-idea}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%{\CA}s obtained through conditional derivatives as shown in the previous section
+%are nondeterministic.
+%%
+%As one of the main contributions of this work, we now propose an approach for
+%determinizing them into a form that can be used efficiently for regex matching. 
+%%
+%The approach from which we start and to which we contrast our new method is the
+%naive determinization of {\CA}s to DFAs:
+%%
+%The given CA is first converted to its underlying NFA, by making the counter
+%memories an explicit part of control states.
+%%
+%The NFA is in turn determinized by the textbook subset construction. 
+%
+%Already the first step, the construction of the NFA, oftentimes explodes since
+%it sacrifices the succinctness of symbolic counters (it is linear to the counter
+%bounds).
+%%
+%This initial blow-up is then much amplified in the subset construction, which is
+%exponential to the size of the NFA and hence also to the counter bounds (as,
+%e.g., in the case of the regex \regex{\DOT*a\DOT\{$k$\}} with its CA
+%in~\cref{fig:ak:nondet}).
+%
+%Our answer to this problem is a direct determinization of the CA into a novel type
+%of automata, which we call \emph{counting-set automata ({\CSA}s)}.
+%%
+%Control states of counting-set automata produced by our determinization are
+%essentially the states of the corresponding DFA but with the counter memories
+%removed.
+%%
+%In order to be able to simulate a run of the DFA, they  are equipped with
+%special registers that can hold \emph{sets} of integers, and they use them to
+%compute the right counter memories at runtime.
+%%
+%This completely avoids the state space explosion of the naive construction
+%caused by wiring counter memories into control states.
+%%
+%Moreover, the simulation is fast because all the manipulations with a
+%counting set can be done in constant time. 
+%
+%%==============================================================================
+%\subsection{Counting-Set Automata}
+%%==============================================================================
+%\label{sec:CsA}
+%
+%We now formalize the idea of counting-set automata outlined above.  We
+%use the notion of a~combined Boolean algebra $\IICCS$, which allows us to
+%manipulate pairs of predicates from the input algebra $\II$ and the
+%counting-set algebra $\CCS$. For the purposes of this paper, we assume
+%that predicates in $\PRED_{\IICCS}$ have the form $\alpha\wedge\beta$
+%where $\alpha\in\PRED_{\II}$ and $\beta\in\PRED_{\CCS}$. The conjuction
+%$(\alpha\wedge\beta)\wedge_{\IICCS}(\alpha'\wedge\beta')$ has the usual meaning
+%of $(\alpha\wedge_{\II}\alpha')\wedge(\beta\wedge_{\CCS}\beta')$ and
+%$\alpha\wedge\beta$ \mbox{is satisfiable if both $\alpha$ and $\beta$ are
+%satisfiable in their respective algebras.}
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Counting sets.}
+%%------------------------------------------------------------------------------
+%
+%We consider a set-based interpretation of counters where the value of a counter
+%$c$ is a \emph{finite set} rather than a single value. 
+%%
+%A counter under such an interpretation is referred to as a \emph{counting set}.
+%%
+%A \emph{(counting-)set memory} for $C$ is a function $\smem : C \rightarrow
+%\PowerSetNE{\nat}$ such that, for all $c\in C$, $\MaxOf{\smem(c)} \leq
+%\MAX{c}$.\footnote{We write $\PowerSetNE{X}$ for the powerset of $X$ restricted
+%to finite nonempty sets.}
+%%
+%Observe that the set of all set memories for $C$ is \emph{finite}.
+%%
+%Counting-set predicates over $C$ form an effective Boolean algebra $\CCS_C$ called
+%the \emph{counting-set algebra over $C$}, 
+%also denoted just $\CCS$ when $C$ is clear from the context, 
+%whose domain $\DOM_{\CCS}$ is the set
+%of all set memories for $C$.
+%%
+%The set of predicates $\PRED_{\CCS}$ is the Boolean closure of the basic
+%predicates $\CanIncrS{c}$ and $\CanExitS{c}$, hence syntactically the same as in
+%the counter algebra $\CC$, but with a different semantics under $\CCS$:
+%%
+%$$\smem\models \CanExitS{c} \Iff \MaxOf{\smem(c)} \geq \MIN{c}
+%\quad\textrm{and}\quad \smem\models\CanIncrS{c}\Iff \MinOf{\smem(c)} < \MAX{c}$$
+%where $\MinOf\cdot$ and $\MaxOf{\cdot}$ are the set minimum and maximum,
+%respectively. 
+%%
+%Intuitively, the conditions test existence of a set element satisfying the same counter condition.
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Counting-set automata.}
+%%------------------------------------------------------------------------------
+%A \emph{counting-set automaton} (\CSA) is a tuple $A =
+%(\II,C,Q,q_0,\FinCond{},\Delta)$ where:
+%%
+%$\II$~is an effective Boolean algebra called the \emph{input algebra}.
+%%
+%$C$ is a finite set of \emph{counters} associated with the counting-set algebra
+%$\CCS$.
+%%
+%$Q$ is a finite set of \emph{states} with $q_0\in Q$ being the \emph{initial
+%state}.
+%%
+%$\FinCond{}: Q\rightarrow\PRED_{\CCS}$ is the \emph{final-state condition}.
+%%
+%$\Delta \subseteq Q\times\PRED_{\IICCS}\times(C \rightarrow \PowerSet{\OPS})\times Q$ is a finite set of \emph{transitions}.
+%% 
+%The second component is its \emph{guard}.
+%The third component is the
+%\emph{counting-set operator} in which $\OPS = \{\IncrCSOp, \NoCSOp, \ExitCSOp,
+%\ExitIncrCSOp\}$ is the set of \emph{counting-set operations}.
+%%
+%They are essentially counter operations lifted to sets 
+%(note the use of the larger initial letters to distinguish them from the counter operations).
+%We also use the different names 
+% $\ExitCSOp$ and
+%$\ExitIncrCSOp$ for the lifting of
+%$\ExitOp$ and $\ExitIncrOp$ 
+%to stress their different usage
+%(not only for exiting a loop but also for initialisation when entering the
+%loop as will become clear in \cref{eq:caoptocsa}). 
+%\cbstart
+%Sets of counting-set operations assigned to every counter by the counting-set operator are called \emph{combined (counting-set) operations}.
 %\cbend
-Finally, a state $(q,\smem)$ of $\NFAof{A}$ is \emph{final} iff
-$\smem\models\FinCond{q}$.
-
-\begin{ex} An example of a CsA is in \cref{fig:ak:det}. It uses intuitive
-  notations that were also introduced in \cref{sec:overview} as
-  abbreviations for the operations of the counting-set data structure.
-Counting-set operators are
-depicted as assignments to $c$, $\ExitCSOp$ is represented as $\{0\}$ on the
-right of the assignment, $\ExitIncrCSOp$ is represented by $\{1\}$, $\IncrCSOp$
-by $c+1$, and $\NoCSOp$ by~$c$. Multiple transitions between the same states and
-with the same updates are merged into one with a simplified guard. An example
-whose notation closely follows the formal development is in
-  \cref{fig:detsample}.
-\end{ex}
-
-%------------------------------------------------------------------------------
-\paragraph{Runtime efficiency of counting sets.}
-%------------------------------------------------------------------------------
-
-\cbstart
-A major reason for choosing CsAs as the target kind of machine for
-determinization of CAs is that pattern matching with CsAs is fast.
-%
-% As explained in \cref{sec:overview},   
-%
-Using the data structure explained in \cref{sec:overview}, all the basic
-counting-set tests and updates, namely,  $\CanIncr c$, $\CanExit c$, $\NoCSOp$,
-$\IncrCSOp$, $\ExitCSOp$, and $\ExitIncrCSOp$, can be implemented to run in
-constant time regardless of the size of the counting set and the value $\MAX{c}$
-(assuming constant-time complexity of integer arithmetic operations).
-%
-Moreover, almost all combined counting-set operations can be implemented to run
-in constant time too. 
-%
-In particular, when at most one counting-set operation of a given combined
-operation returns a set other than $\{0\}$ or $\{1\}$, their union can be
-computed in constant time.
-%
-% The only difficulty arises when the combined operation has two member
-% counting-set operations that may return non-singleton sets. 
-%
-% Their union is then liner to the size of these sets (which is at most $\MAX
-% c$).
-%
-If this is not the case, the union is linear to the size of the sets computed by
-the particular counting-set operations (which is at most $\MAX c$).
-%
-The only operations that may return sets other than $\{0\}$ or $\{1\}$ are
-$\NoCSOp$ and $\IncrCSOp$. 
-%
-We denote a transition whose counting-set operator $f$ assigns to some counter
-$c$ the result of a combined operation $f(c)$ that contains both $\NoCSOp$ and
-$\IncrCSOp$ as \emph{slow}.
-%
-A CsA that has slow transitions is called \emph{slow}, and a CsA that does not
-have them is called \emph{fast}.
-%
-Slow CsAs are fortunately rare in practice (cf. \cref{sec:experiments}). 
- 
-When a fast CsA is used in pattern matching, tests and updates of one counting
-set then take $\bigo(1)$ time, which in turn gives $\bigo(|C|)$ for all counting
-sets and their unions.
-%
-\emph{This is our major achievement: the independence of the running time from
-the counter bounds.}
-\cbend
-
-%==============================================================================
-\subsection{Encoding DFA Powerstates as CsA Configurations}\label{sec:nonzero}
-%==============================================================================
-
-In order to build intuition needed for understanding our determinization
-algorithm, we will first concretize how the configurations of a CsA can encode
-states of a DFA corresponding to the NFA $\NFAof{A}$ underlying a given CA
-$A=(\II,C,Q,q_0,F,\Delta)$.
-%
-First, recall that, since $A$ is converted into $\NFAof{A}$ by making the
-counter memories explicit parts of control states, the states of $\NFAof{A}$ are
-pairs $(p,\mem)$ consisting of a~state $p$ of~$A$ and a counter memory $\mem$. 
-%
-Second, assume that $\NFAof{A}$ is determinized using the textbook subset
-construction.%
-%
-\footnote{The DFA produced by the textbook subset construction from a
-\emph{simple} FA $\mathcal{A} = (\II,Q,q_0,F,\Delta)$ will have  $\PowerSet{Q}$
-as the set of states, transitions $\move{S}{\alpha}{\{r\in Q\mid
-\move{s}{\alpha}{r}\in\Delta,s\in S\}}$, the initial state $\{q_0\}$, and as the
-final states all those intersecting $F$.
-%
-We note that to determinize a CA which is not simple, one could start from the
-more sophisticated version of the subset construction for symbolic automata of
-\cite{SFAdeterm}, which avoids explicit generation of all minterms.}
-%
-We denote the result as $\DFAof{A}$ from now on.
-%
-Then, the states of~$\DFAof A$ are sets of states of~$\NFAof{A}$, i.e., sets of
-pairs $(p,\mem)$, which we will call \emph{powerstates}.
-%
-The control states of the CsA $\CS{A}$ built by our CA-to-CsA determinization
-will be subsets of the set $Q$ of states of the CA $A$.
-%
-The configurations of $\CS{A}$ will thus be pairs $(R,\smem)$ where $R\subseteq
-Q$ is a CsA control state, i.e., a set of states of $A$, and $\smem: C
-\rightarrow \PowerSetNE{\nat}$ is a counting-set memory. 
-%
-Let us now consider how $\smem$ can be interpreted in this context.
-
-%------------------------------------------------------------------------------
-\paragraph{Naive encoding.}
-%------------------------------------------------------------------------------
-
-A naive interpretation of a CsA configuration $(R,\smem)$ is
-a DFA state containing all pairs $(r,\mem)$ such that
-$r\in R$ and, for all $c\in C$, $\mem(c)$ can be any value from $\smem(c)$.
-%
-The set of the counter memories $\mem$ is then isomorphic to 
-the Cartesian product $\prod_{c\in C}\smem(c)$ of the sets  $\smem(c)$ assigned to the counters, 
-and the entire powerstate is the Cartesian product $R\times \mem$ of the set of states and the set of counter memories.
-%
-The naive interpretation, however, is too impractical as it cannot express any
-dependence of a counter memory on the CA state (every state can be paired with
-each considered memory) nor any mutual dependence of values of different
-counters within a counter memory (every possible value of a counter $c$ can be
-paired with every possible value of any other counter $d$).
-%
-Most DFAs compiled from real-life regexes do not fit into this
-representation.
-%
-For instance, the DFA configuration $\{(q,c=0),(s,c=0),(s,c=1)\}$ of the CA from
-\cref{fig:ak} in \cref{sec:overview} could not be represented by a CsA
-configuration because $q$ and $s$ appear with different sets of counter values.
-
-%------------------------------------------------------------------------------
-\paragraph{Encoding with counter scopes.}
-%------------------------------------------------------------------------------
-
-Our key observation how to resolve the above problem (at least for many
-real-life scenarios) is to take advantage of that not every counter is ``used''
-at every CA state. 
-%
-In fact, the value of a counter is usually implicitly 0 at most states except a
-few. 
-%
-If these states are known, the implicit zeros do not have to be remembered
-explicitly in the counting sets, and the encoding becomes much more flexible. 
-%
-To formalize this, we introduce the notion of the \emph{scope of a counter} that
-over-approximates the set of states where a counter $c$ can have a non-zero
-value and that is easy to compute.\footnote{Computing the precise set of states
-where a counter $c$ can have a non-zero value would require a reachability
-analysis in the general case (since some of the transitions may never be
-executable---think of simultaneously counting with counters $c$ and $d$ such
-that $\CanIncr c < \CanExit d$, then the exit transition for $d$ will never be
-taken). For the CAs made by our derivative construction, the scope, however,
-corresponds to this set \mbox{precisely---no transitions that are never
-executable are generated.}
-}
-%
-The scope is defined inductively as the smallest set of states $\scope(c)$ such
-that\begin{enumerate}
-
-  \item $q \in \scope(c)$ if there is a transition to $q$ with either $\IncrOp[c]$
-  or $\ExitIncrOp[c]$, or
-
-  \item there is a transition to $q$ from a state in $\scope(c)$ with the
-  $\NoOp[c]$ operation.
-
-\end{enumerate} In other words, the scope of $c$ spreads from an increment of
-$c$ along the transition relation until a transition with $\ExitOp[c]$.
-
-The DFA \emph{powerstate encoded by a CsA configuration} $(R,\smem)$ can then be
-formally defined as the set $\pstateof{(R,\smem)}$ of configurations $(r,\mem)$
-of the CA $A$ such that $r\in R$ and, for all $c\in C$, $\mem(c)\in \smem(c)$ if
-$c\in\scope(r)$, else $\mem(c) = 0$.
-%
-We call the powerstates of $\DFAof{A}$ that can be encoded by CsA configurations
-\emph{Cartesian}, and call the entire DFA Cartesian if all its
-powerstates are Cartesian.
-
-\begin{ex}
-The powerstates of the $\DFAof{A}$ of the \CA $A$ from \cref{fig:ak:nondet} are
-indeed Cartesian (as discussed in \cref{sec:overview}) because $q_0$ is not in
-the scope of $c$.
-The encoding of powerstates by CsA configurations is also illustrated in \cref{sec:overview} and later also in \cref{ex:det_trans_constr}.
-\end{ex}
-
-
-The Cartesian encoding still cannot express all kinds of DFA powerstates.
-%
-In particular, it cannot express more subtle dependencies of counter values on the state, and dependencies of counter values of different
-counters on each other, which mainly concerns CAs with nested counting loops
-compiled from regexes with nested counting sub-expressions. 
-%
-\cref{ex:noncartesian} discusses a regex that leads to a non-Cartesian CA. 
-%
-However, we later present a strong empirical evidence that a significant
-majority of real-life regexes lead to Cartesian CA. 
-
-%==============================================================================
-\subsection{Generalized Subset Construction}\label{sec:subscons}
-%==============================================================================
-
-We will now describe the core of our CA-to-CsA determinization.
-%
-It is built on top of the textbook subset construction for NFAs.
-%
-We use the CA from \cref{fig:detsample:CA} as a running example through the
-section.
-%
-We make a simplifying assumption that the input CAs are simple (different
-character classes on their transitions do not overlap). This is satisfied by CAs
-generated by the derivative construction from \cref{sec:regexes} since their transitions are labeled by minterms of the original regex. 
-%
-The assumption could be dropped and the construction could be relatively easily generalized in the style of symbolic automata determinization of \cite{SFAdeterm}.
-
-
-Let $A=(\II,C,Q,q_0,F,\Delta)$ be a simple 
-CA with the scope function
-$\scope:Q\rightarrow\PowerSet{C}$. 
-%
-The algorithm produces the deterministic CsA
-$\CS{A}=(\II,C,\CS{Q},S_0,\CS{F},\CS{\Delta})$ whose components are constructed
-as described below.
-%
-Namely, control states of $\CS{A}$, called powerstates, are subsets of $Q$,
-i.e., $Q' \subseteq \PowerSet Q$.
-%
-The initial powerstate is $S_0 = \{q_0\}$.
-%
-A powerstate $S\in \CS{Q}$ is final iff the final condition holds for some of
-its elements, i.e., $\CS{F}(S)\eqdef\bigvee_{q\in S} F(q)$.
-%
-The sets $\CS{\Delta}$ and $\CS{Q}$ are constructed by a fixpoint computation
-that explores the state space reachable from $S_0$.
-%
-During the construction, transitions starting from previously reached
-powerstates are constructed and included together with their target states into
-$\CS{\Delta}$ and $\CS{Q}$, respectively, until no new powerstates can be
-reached.  
-
-Transitions starting from a given control state $R$ of the CsA $\CS{A}$ are
-constructed
-%
-to update the runtime values of counting sets such that they simulate
-transitions of the DFA corresponding to the CA $A$.  
-%
-Assume a CsA configuration $(R,\smem)$ and a DFA transition
-$\move{\pstateof{(R,\smem)}}{\alpha}{P}$ from the DFA powerstate encoded by
-$(R,\smem)$ over an input minterm $\alpha$.
-%
-The simulating CsA transition must transform $(R,\smem)$ into $(R',\smem')$ with
-$\pstateof{(R',\smem')} = P$.
-%
-The simulated DFA transition was constructed from $\alpha$-transitions of the
-NFA $\NFAof{A}$ that are actually instantiations of the CA $\alpha$-transitions
-enabled in configurations $(r,\mem)\in \pstateof{(R,\smem)}$. 
-%
-The simulating CsA transition will be constructed from these CA transitions. 
-%
-They can be identified by (1)~their source state, which must be in $R$, (2)~an
-alphabet minterm $\alpha\in\Sigma$ where $\Sigma$ is the set of minterms over
-all input predicates in the CA $A$, 
-and (3)~their compatibility with a particular set
-of enabled/disabled counter guards.
-%
-This set of guards belongs to the set of minterms $\Gamma_{R,\alpha}$ of the set
-of counter guards on the $\alpha$-transitions originating in $R$:
-$$\Gamma_{R,\alpha} \defeq \Minterms{\{\guard{\Op[c]}\mid
-\move{r}{\alpha,f}{s}\in \Delta, r\in R \land c \in \scope(r), \Op[c]\in f\}}.$$
-%
-Hence, the CsA will have a transition leaving $R$ for each $\alpha\in \Sigma$
-and
-$\beta\in\Gamma_{R,\alpha}$, and the transition will be built from the set of CA
-$\alpha$-transitions originating in $R$ and \emph{consistent} with $\beta$: 
-%
-\begin{equation*} \label{eq:consistent} 
-\consistent \eqdef \{
-\move{r}{\alpha,f}{s}\in\Delta\mid r{\in} R, \SAT(\Guard{f}\land \beta) \}.
-\end{equation*}
-%
-Its target is the set $T$ of all target states of the transitions in
-$\consistent$, and its guard is $\alpha \land \beta$.\footnote{Recall that
-the predicates in $\PRED_\CC$ and $\PRED_\CCS$ are syntactically the same.}
-
-
-The remaining component is the counting-set operator $\CS{f}$.
-%
-It must summarize the updates of the counter values on transitions of
-$\consistent$ as updates of the respective counting sets. 
-%
-The values of counters that are out of scope, hence implicitly zero, will not be
-tracked in counting sets.
-%
-Tracking the value of a counter hence starts when $\CS{A}$ simulates a
-transition of $A$ entering the scope of the counter, and ends when no state from
-the scope is present in the target CsA state. 
-
-\begin{wrapfigure}[8]{r}{63mm}
-\begin{minipage}{65mm}
-  \vspace*{-5.5mm}
-  \begin{equation*}
-  \textit{op}(\,\move {p\!}{\alpha,f}{\!q}\,,c) \defeq \hfill
-  \end{equation*}
-  \vspace*{-2mm}
-  \hspace*{-6mm}
-  \begin{minipage}{67mm}
-      \begin{equation}
-  \label{eq:caoptocsa}
-      \defeq
-      \left\{ 
-      \begin{array}{ll}
-        \NoCSOp 		& \text{if $f(c) = \NoOp \wedge p\in\scope(c)$}\\
-        \IncrCSOp 		& \text{if $f(c) = \IncrOp \wedge p\in\scope(c)$}\\
-        \ExitCSOp		& \text{if $f(c) = \NoOp \wedge p\not\in \scope (c)$}\\  
-        \ExitIncrCSOp	& \text{if $f(c) = \IncrOp \wedge p\not\in\scope(c)$}\\
-        \ExitCSOp 		& \text{if $f(c) = \ExitOp$}\\
-        \ExitIncrCSOp	& \text{if $f(c) = \ExitIncrOp$}\\
-    \end{array}
-    \right.
-    \end{equation}
-  \end{minipage}
-\end{minipage}
-\end{wrapfigure}
-
-Let $\consistent(c)$ be the set of transitions in $\consistent$ with the target
-state in the scope of $c$.
-%
-The counting-set operator $\CS{f}$ is built in the form
-$\CS{f}(c)\eqdef\{\textit{op}(\tau,c)\mid \tau\in \consistent(c)\}$.
-%
-Here, $\textit{op}(\tau,c)$ denotes the counting-set operation that, given a CA
-transition $\tau = \move p {\alpha,f} q$, transforms the set of possible values
-of the counter $c$ at the state $p$ to the set of values obtained at $q$ after
-taking the transition.
-%
-It is defined in \cref{eq:caoptocsa} on the right.
-%
-The set operation induced by the CA transition corresponds to the counter
-operation on the transition. 
-%
-In the third and fourth case, when the CA transition comes from out of the
-scope, it is certain that the counter can only have the value $0$, which is the
-same value as produced by $\ExitOp$ (or $\ExitIncrOp$ when the counter is
-immediately incremented).
-%
-The resulting CsA transition is therefore $\move S {\alpha\land\beta,\CS{f}} T$.
-%
-Note that $\CS{f}(c)$ ends up empty when the target powerstate is fully out of
-the scope of $c$, which semantically corresponds to the implicit reset to $\{0\}$.
-
-Observe that $\CS{A}$ is deterministic
-since, for any two distinct transitions
-$\move{S}{\alpha_1,f_1}{S_1}$ and
-$\move{S}{\alpha_2,f_2}{S_2}$, the condition
-$\alpha_1\wedge\alpha_2$ is unsatisfiable
-by virtue of minterms. 
-
-\begin{figure}
-  %\ \\[-10mm]
-  \vspace{-3mm}
-  \hspace{-10mm}
-  \begin{subfigure}[b]{0.24\linewidth}
-  \begin{center}
-    \includegraphics[height=4.6cm,keepaspectratio]{figures/detsample_TB.pdf}
-  \end{center}
-%  \caption{The CA for \texttt{\DOT*a\DOT{\leftbrace}4,8{\rightbrace}a}}
-  \label{fig:detsample:CA}
-  \end{subfigure}
-  \hspace{2mm}
-  \begin{subfigure}[b]{0.64\linewidth}
-  \begin{center}
-    \includegraphics[height=5.6cm,keepaspectratio]{figures/detsampleCSA_TB.pdf}
-    %\vspace*{-8mm}
-  \end{center}
-  \caption{Determinization of the CA into a {\CSA}}
-  \label{fig:detsample:CsA}
-  \end{subfigure}
-  \caption{From a regex via a CA to a deterministic CsA. 
-    We are using a notation closely following the formal development. 
-    We only use $\Op(c)$ instead of $\Op[c]$ and abbreviate  
-    $\CanExitS c$ by $\xi(c)$ and $\CanIncrS c$ by $\iota(c)$.
-  }
-  \label{fig:detsample}
-  \vspace{-2mm}
-\end{figure}
-%
-
-\begin{theorem}
-  For the CA $A$ and the CsA $\CS A$ above, we have $\langof {\CS \aut} \supseteq \langof \aut$ and $|\CS
-  Q| \leq 2^{|Q|}$.
-\end{theorem}
-\begin{proof}[Proof (idea)] 
-The language inclusion is proved by showing that the configuration automaton $\FA(\CS A)$ of $\CS A$ simulates $\DFAof A$,
-more concretely, that each configuration $(R,\smem)$ of $\CS A$, a state of $\FA(\CS A)$,
-simulates the powerstate $(R,\smem)$ of $\DFAof A$.
-%
-The bound on the size of the state space follows from that states of the CsA are
-sets of states of the CA.\end{proof}
-
-\begin{ex}\label{ex:det_trans_constr} Consider the {\CA} in
-\cref{fig:detsample:CA} that has states $q_0$, $q_1$, and $q_2$.
-%
-The state $q_0$ is initial, the final condition of $q_2$ is $\top$, and it is
-$\bot$ for $q_0$ and $q_1$.
-%
-The set of counters is $C= \{c\}$ with $\scope(c) = \{q_1\}$ (i.e., $c$ is not
-used and hence implicitly 0 in $q_0$ and $q_2$).
-%
-Finally, $\Sigma = \{\regex{a},\notacl\}$.
-%
-In \cref{fig:detsample:CA}, we compactly represent transitions over all minterms
-from~$\Sigma$ using $\DOT$.
-%
-The determinization starts exploring the CsA from its initial state $S_0 =
-\{q_0\}$. 
-
-Let us focus on the transitions for the input minterm $\alpha = \acl$.
-%
-Two transitions leaving~$q_0$, namely $\delta_1 =
-\move{q_0}{\acl,\NoOp[c]}{q_0}$ and $\delta_2 = \move{q_0}{\acl,\NoOp[c]}{q_1}$,
-both with no guard on~$c$,
-hence $\Gamma_{S_0,\alpha} = \{\top\}$. 
-%
-The guard~$\top$ is thus the only choice for the counter minterm $\beta$.
-%
-The set $\consistent$ of transitions consistent with $\alpha$ and $\beta$ then
-contains both $\acl$-transitions $\delta_1$ and $\delta_2$ originating from $q_0$.
-%
-Since $\delta_2$ is entering the scope of $c$, it generates the counting-set
-operation $\ExitCSOp[c]$ according to the third case of \cref{eq:caoptocsa}.
-%
-Since $\delta_1$ stays out of the scope, it does not generate any counting-set
-operations.
-%
-We obtain the counting-set operator \mbox{$\CS{f} = \{\ExitCSOp[c]\}$ and generate the
-CsA transition $\tau_1 =
-\move{\{q_0\}}{\acl\land\beta,\{\ExitCSOp[c]\}}{\{q_0,q_1\}}$.}
-
-Next, let us focus on the $\acl$-transitions from $S_1 = \{q_0,q_1\}$.
-Here, $\Gamma_{S_1,\acl}$ has the following three satisfiable elements: $\CanExit{c}\land
-\CanIncr{c}$,  $\neg\CanExit{c}\land \CanIncr{c}$, and  $\CanExit{c}\land
-\neg\CanIncr{c}$ (the guard $\neg\CanExit{c}\land \neg\CanIncr{c}$ is excluded as it is
-never satisfied for non-empty sets of positive integers).  
-%
-Let us generate a transition for the second case, $\beta = \neg\CanExit{c}\land
-\CanIncr{c}$.
-%
-We obtain $\Delta_{S_1,\acl,\beta} =
-\{\move{q_0}{\acl,\NoOp[c]}{q_0}$, $\move{q_0}{\acl,\NoOp[c]}{q_1}$, $\move{q_1}{\acl,\IncrOp[c]}{q_1}\}$. 
-%
-As before, the first transition does not contribute to $\CS{f}$ as it stays
-out of the scope, and the second transition adds $\ExitCSOp[c]$.
-%
-The third transition adds $\IncrCSOp[c]$ (the second case of
-\cref{eq:caoptocsa}).
-%
-The resulting CsA transition is thus $\tau_2 =
-\move{S_1}{\acl\land\neg\CanExit{c}\land \CanIncr{c},\{\IncrCSOp[c],\ExitCSOp[c]\}}{S_1}$.
-%
-The rest of the construction is analogous.
-
-Last, let us also illustrate the simulation of $\DFAof{A}$ by the constructed
-CsA transitions.  
-%
-On the word $aa$, the DFA would execute the run
-$\move{\move{\{(q_0,c=0)\}}{\acl}{\{(q_0,c=0),(q_1,c=0)\}}}{\acl}{\{(q_0,c=0),(q_1,c=0),(q_1,c=1)\}}$. 
-%
-The simulating run of our CsA would start in the initial configuration
-$\{\{q_0\},c\in\{0\}\}$.  The transition $\tau_1$ would produce the
-configuration $\{\{q_0,q_1\},c\in\{0\}\}$ (since $\ExitCSOp(\{0\}) = \{0\}$)
-from where $\tau_2$ would produce $\{\{q_0,q_1\},c\in\{0,1\}\}$ (since
-$\IncrCSOp(\{0\}) = \{1\}$ and $\ExitCSOp(\{0\}) = \{0\}$).
-%
-The sequence of configurations precisely encodes the sequence of the DFA
-powerstates, that is, the sequnce
-%
-%Indeed, we obtain the sequence of DFA powerstates $\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
-%Indeed, the sequence of DFA powerstates is $\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
-$\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
-$\pstateof{(\{q_0,q_1\},c\in\{0\})}  = \{(q_0,c=0),(q_1,c=0)\}$; and
-$\pstateof{(\{q_0,q_1\},c\in\{0,1\})}  = \{(q_0,c=0),(q_1,c=0),(q_1,c=1)\}$
-(recall that $q_0$ is not in the scope of $c$ hence $c$ has implicitly the
-value 0 there).  
-\end{ex}
+%
+%The {\CSA} $A$ is \emph{deterministic} iff the following holds for every two transitions 
+%$\move p {\psi_1, f_1} {q_1}$ and  $\move p {\psi_2, f_2} {q_2}$ in $\Delta$: 
+%if $\psi_1 \wedge \psi_2$ 
+%is satisfiable, then $f_1 = f_2$ and $q_1 = q_2$.
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Semantics of {\CSA}s.}
+%%------------------------------------------------------------------------------
+%
+%The semantics of an indexed counting-set operation $\Op[c] \in \OPS$ is the set
+%transformer $\update{\Op[c]}$ defined as follows:   
+%%
+%$$
+%\begin{array}{r@{\ =\ }lr@{\ =\ }l}
+%\update{\IncrCSOp[c]} & \blambda S.\{n+1\mid n\in S \land n < \MAX{c}\} & \update{\ExitCSOp[c]} & \blambda S.\{0\}\\
+%\update{\NoCSOp[c]} &\blambda S.S & \update{\ExitIncrCSOp[c]} & \blambda S.\{1\}
+%\end{array}
+%$$
+%%
+%Then, the counting-set operator $f:C\rightarrow\PowerSet{\OPS}$ is assigned the
+%counting-set-memory transformer $\Update{f}:\DOM_{\CCS}\rightarrow\DOM_{\CCS}$
+%defined as follows: 
+%%
+% $$ \Update{f}(\smem) \eqdef \blambda c.\left\{ \begin{array}{ll} \bigcup_{\Op\in f(c)}
+% \update{\Op[c]}(\smem(c)) & \text{if}\ f(c)\neq \emptyset \\ \{0\} &
+% \text{if}\ f(c)=  \emptyset \end{array} \right.  $$
+%%
+%That is, (1) if $f(c)\neq \emptyset$, then the value $\smem(c)$ of each counting
+%set $c$ is transformed into the union of the counting sets that result from
+%applying the operations from $f(c)$ on $\smem(c)$, and
+%%
+%(2) if $f(c) = \emptyset$, then $c$ is implicitly reset to $\{0\}$ (an implicit $\ExitCSOp$). 
+%Our determinization procedure creates such transitions when the value of $c$ is irrelevant 
+%(when $c$ is a dead variable). 
+%
+%Note that, unlike counter operators of a CA, a counting-set operator $f$ does
+%not induce any guard.
+%%
+%The guard is rather a separate component of the transition.
+%%
+%This is because CsA transitions produced in the CA-to-CsA determinization need
+%guards that are partially independent of the operations of $f$.
+%%
+%In particular, we will we need to distinguish cases such as
+%$\neg\CanExit{c}\wedge\CanIncr{c}$, $\CanExit{c}\wedge\neg\CanIncr{c}$, or
+%$\CanExit{c}\wedge\CanIncr{c}$.
+%%
+%The guard hence cannot be induced by $f$ alone. 
+%
+%Note also that, unlike in CAs, the updates are defined for \emph{indexed}
+%operations.
+%%
+%The reason is that the semantics of the $\IncrCSOp$ operation is restricted to
+%never produce values greater than $\MAX{c}$.
+%
+%Finally, the \emph{language of the CsA} $A$ is defined through its 
+%%
+%underlying  \emph{configuration FA}, $\NFAof{A}$, as $\langof{A} :=
+%\langof{\NFAof{A}}$.
+%%
+%The states of $\NFAof{A}$ are \emph{configurations} of $A$, namely, tuples of
+%the form $(q,\smem) \in Q \times \DOM_{\CCS}$ consisting of a state $q$ and a
+%counting-set memory~$\smem$.
+%%
+%There are finitely many such configurations.
+%%
+%The initial state of $\NFAof{A}$ is the \emph{initial configuration}
+%$(q_0,\{c\mapsto\{0\}\}_{c\in C})$~of~$A$.
+%%
+%A~transition $\tau=\move p {\alpha\land\beta, f} q\in \Delta$ is \emph{enabled} in a
+%configuration $(p,\smem)$ iff $\alpha$ is satisfiable and
+%$\smem\in\den[\CCS]{\beta}$, meaning that $\smem$ satisfies the counter guard $\beta$.
+%If $\tau$ is enabled in $(p,\smem)$, then $\NFAof{A}$ contains the transition
+%$\move{(p,\smem)} {\alpha} {(q,\Update{f}(\smem))}$. 
+%%\cbend
+%Finally, a state $(q,\smem)$ of $\NFAof{A}$ is \emph{final} iff
+%$\smem\models\FinCond{q}$.
+%
+%\begin{ex} An example of a CsA is in \cref{fig:ak:det}. It uses intuitive
+%  notations that were also introduced in \cref{sec:overview} as
+%  abbreviations for the operations of the counting-set data structure.
+%Counting-set operators are
+%depicted as assignments to $c$, $\ExitCSOp$ is represented as $\{0\}$ on the
+%right of the assignment, $\ExitIncrCSOp$ is represented by $\{1\}$, $\IncrCSOp$
+%by $c+1$, and $\NoCSOp$ by~$c$. Multiple transitions between the same states and
+%with the same updates are merged into one with a simplified guard. An example
+%whose notation closely follows the formal development is in
+%  \cref{fig:detsample}.
+%\end{ex}
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Runtime efficiency of counting sets.}
+%%------------------------------------------------------------------------------
+%
+%\cbstart
+%A major reason for choosing CsAs as the target kind of machine for
+%determinization of CAs is that pattern matching with CsAs is fast.
+%%
+%% As explained in \cref{sec:overview},   
+%%
+%Using the data structure explained in \cref{sec:overview}, all the basic
+%counting-set tests and updates, namely,  $\CanIncr c$, $\CanExit c$, $\NoCSOp$,
+%$\IncrCSOp$, $\ExitCSOp$, and $\ExitIncrCSOp$, can be implemented to run in
+%constant time regardless of the size of the counting set and the value $\MAX{c}$
+%(assuming constant-time complexity of integer arithmetic operations).
+%%
+%Moreover, almost all combined counting-set operations can be implemented to run
+%in constant time too. 
+%%
+%In particular, when at most one counting-set operation of a given combined
+%operation returns a set other than $\{0\}$ or $\{1\}$, their union can be
+%computed in constant time.
+%%
+%% The only difficulty arises when the combined operation has two member
+%% counting-set operations that may return non-singleton sets. 
+%%
+%% Their union is then liner to the size of these sets (which is at most $\MAX
+%% c$).
+%%
+%If this is not the case, the union is linear to the size of the sets computed by
+%the particular counting-set operations (which is at most $\MAX c$).
+%%
+%The only operations that may return sets other than $\{0\}$ or $\{1\}$ are
+%$\NoCSOp$ and $\IncrCSOp$. 
+%%
+%We denote a transition whose counting-set operator $f$ assigns to some counter
+%$c$ the result of a combined operation $f(c)$ that contains both $\NoCSOp$ and
+%$\IncrCSOp$ as \emph{slow}.
+%%
+%A CsA that has slow transitions is called \emph{slow}, and a CsA that does not
+%have them is called \emph{fast}.
+%%
+%Slow CsAs are fortunately rare in practice (cf. \cref{sec:experiments}). 
+% 
+%When a fast CsA is used in pattern matching, tests and updates of one counting
+%set then take $\bigo(1)$ time, which in turn gives $\bigo(|C|)$ for all counting
+%sets and their unions.
+%%
+%\emph{This is our major achievement: the independence of the running time from
+%the counter bounds.}
+%\cbend
+%
+%%==============================================================================
+%\subsection{Encoding DFA Powerstates as CsA Configurations}\label{sec:nonzero}
+%%==============================================================================
+%
+%In order to build intuition needed for understanding our determinization
+%algorithm, we will first concretize how the configurations of a CsA can encode
+%states of a DFA corresponding to the NFA $\NFAof{A}$ underlying a given CA
+%$A=(\II,C,Q,q_0,F,\Delta)$.
+%%
+%First, recall that, since $A$ is converted into $\NFAof{A}$ by making the
+%counter memories explicit parts of control states, the states of $\NFAof{A}$ are
+%pairs $(p,\mem)$ consisting of a~state $p$ of~$A$ and a counter memory $\mem$. 
+%%
+%Second, assume that $\NFAof{A}$ is determinized using the textbook subset
+%construction.%
+%%
+%\footnote{The DFA produced by the textbook subset construction from a
+%\emph{simple} FA $\mathcal{A} = (\II,Q,q_0,F,\Delta)$ will have  $\PowerSet{Q}$
+%as the set of states, transitions $\move{S}{\alpha}{\{r\in Q\mid
+%\move{s}{\alpha}{r}\in\Delta,s\in S\}}$, the initial state $\{q_0\}$, and as the
+%final states all those intersecting $F$.
+%%
+%We note that to determinize a CA which is not simple, one could start from the
+%more sophisticated version of the subset construction for symbolic automata of
+%\cite{SFAdeterm}, which avoids explicit generation of all minterms.}
+%%
+%We denote the result as $\DFAof{A}$ from now on.
+%%
+%Then, the states of~$\DFAof A$ are sets of states of~$\NFAof{A}$, i.e., sets of
+%pairs $(p,\mem)$, which we will call \emph{powerstates}.
+%%
+%The control states of the CsA $\CS{A}$ built by our CA-to-CsA determinization
+%will be subsets of the set $Q$ of states of the CA $A$.
+%%
+%The configurations of $\CS{A}$ will thus be pairs $(R,\smem)$ where $R\subseteq
+%Q$ is a CsA control state, i.e., a set of states of $A$, and $\smem: C
+%\rightarrow \PowerSetNE{\nat}$ is a counting-set memory. 
+%%
+%Let us now consider how $\smem$ can be interpreted in this context.
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Naive encoding.}
+%%------------------------------------------------------------------------------
+%
+%A naive interpretation of a CsA configuration $(R,\smem)$ is
+%a DFA state containing all pairs $(r,\mem)$ such that
+%$r\in R$ and, for all $c\in C$, $\mem(c)$ can be any value from $\smem(c)$.
+%%
+%The set of the counter memories $\mem$ is then isomorphic to 
+%the Cartesian product $\prod_{c\in C}\smem(c)$ of the sets  $\smem(c)$ assigned to the counters, 
+%and the entire powerstate is the Cartesian product $R\times \mem$ of the set of states and the set of counter memories.
+%%
+%The naive interpretation, however, is too impractical as it cannot express any
+%dependence of a counter memory on the CA state (every state can be paired with
+%each considered memory) nor any mutual dependence of values of different
+%counters within a counter memory (every possible value of a counter $c$ can be
+%paired with every possible value of any other counter $d$).
+%%
+%Most DFAs compiled from real-life regexes do not fit into this
+%representation.
+%%
+%For instance, the DFA configuration $\{(q,c=0),(s,c=0),(s,c=1)\}$ of the CA from
+%\cref{fig:ak} in \cref{sec:overview} could not be represented by a CsA
+%configuration because $q$ and $s$ appear with different sets of counter values.
+%
+%%------------------------------------------------------------------------------
+%\paragraph{Encoding with counter scopes.}
+%%------------------------------------------------------------------------------
+%
+%Our key observation how to resolve the above problem (at least for many
+%real-life scenarios) is to take advantage of that not every counter is ``used''
+%at every CA state. 
+%%
+%In fact, the value of a counter is usually implicitly 0 at most states except a
+%few. 
+%%
+%If these states are known, the implicit zeros do not have to be remembered
+%explicitly in the counting sets, and the encoding becomes much more flexible. 
+%%
+%To formalize this, we introduce the notion of the \emph{scope of a counter} that
+%over-approximates the set of states where a counter $c$ can have a non-zero
+%value and that is easy to compute.\footnote{Computing the precise set of states
+%where a counter $c$ can have a non-zero value would require a reachability
+%analysis in the general case (since some of the transitions may never be
+%executable---think of simultaneously counting with counters $c$ and $d$ such
+%that $\CanIncr c < \CanExit d$, then the exit transition for $d$ will never be
+%taken). For the CAs made by our derivative construction, the scope, however,
+%corresponds to this set \mbox{precisely---no transitions that are never
+%executable are generated.}
+%}
+%%
+%The scope is defined inductively as the smallest set of states $\scope(c)$ such
+%that\begin{enumerate}
+%
+%  \item $q \in \scope(c)$ if there is a transition to $q$ with either $\IncrOp[c]$
+%  or $\ExitIncrOp[c]$, or
+%
+%  \item there is a transition to $q$ from a state in $\scope(c)$ with the
+%  $\NoOp[c]$ operation.
+%
+%\end{enumerate} In other words, the scope of $c$ spreads from an increment of
+%$c$ along the transition relation until a transition with $\ExitOp[c]$.
+%
+%The DFA \emph{powerstate encoded by a CsA configuration} $(R,\smem)$ can then be
+%formally defined as the set $\pstateof{(R,\smem)}$ of configurations $(r,\mem)$
+%of the CA $A$ such that $r\in R$ and, for all $c\in C$, $\mem(c)\in \smem(c)$ if
+%$c\in\scope(r)$, else $\mem(c) = 0$.
+%%
+%We call the powerstates of $\DFAof{A}$ that can be encoded by CsA configurations
+%\emph{Cartesian}, and call the entire DFA Cartesian if all its
+%powerstates are Cartesian.
+%
+%\begin{ex}
+%The powerstates of the $\DFAof{A}$ of the \CA $A$ from \cref{fig:ak:nondet} are
+%indeed Cartesian (as discussed in \cref{sec:overview}) because $q_0$ is not in
+%the scope of $c$.
+%The encoding of powerstates by CsA configurations is also illustrated in \cref{sec:overview} and later also in \cref{ex:det_trans_constr}.
+%\end{ex}
+%
+%
+%The Cartesian encoding still cannot express all kinds of DFA powerstates.
+%%
+%In particular, it cannot express more subtle dependencies of counter values on the state, and dependencies of counter values of different
+%counters on each other, which mainly concerns CAs with nested counting loops
+%compiled from regexes with nested counting sub-expressions. 
+%%
+%\cref{ex:noncartesian} discusses a regex that leads to a non-Cartesian CA. 
+%%
+%However, we later present a strong empirical evidence that a significant
+%majority of real-life regexes lead to Cartesian CA. 
+%
+%%==============================================================================
+%\subsection{Generalized Subset Construction}\label{sec:subscons}
+%%==============================================================================
+%
+%We will now describe the core of our CA-to-CsA determinization.
+%%
+%It is built on top of the textbook subset construction for NFAs.
+%%
+%We use the CA from \cref{fig:detsample:CA} as a running example through the
+%section.
+%%
+%We make a simplifying assumption that the input CAs are simple (different
+%character classes on their transitions do not overlap). This is satisfied by CAs
+%generated by the derivative construction from \cref{sec:regexes} since their transitions are labeled by minterms of the original regex. 
+%%
+%The assumption could be dropped and the construction could be relatively easily generalized in the style of symbolic automata determinization of \cite{SFAdeterm}.
+%
+%
+%Let $A=(\II,C,Q,q_0,F,\Delta)$ be a simple 
+%CA with the scope function
+%$\scope:Q\rightarrow\PowerSet{C}$. 
+%%
+%The algorithm produces the deterministic CsA
+%$\CS{A}=(\II,C,\CS{Q},S_0,\CS{F},\CS{\Delta})$ whose components are constructed
+%as described below.
+%%
+%Namely, control states of $\CS{A}$, called powerstates, are subsets of $Q$,
+%i.e., $Q' \subseteq \PowerSet Q$.
+%%
+%The initial powerstate is $S_0 = \{q_0\}$.
+%%
+%A powerstate $S\in \CS{Q}$ is final iff the final condition holds for some of
+%its elements, i.e., $\CS{F}(S)\eqdef\bigvee_{q\in S} F(q)$.
+%%
+%The sets $\CS{\Delta}$ and $\CS{Q}$ are constructed by a fixpoint computation
+%that explores the state space reachable from $S_0$.
+%%
+%During the construction, transitions starting from previously reached
+%powerstates are constructed and included together with their target states into
+%$\CS{\Delta}$ and $\CS{Q}$, respectively, until no new powerstates can be
+%reached.  
+%
+%Transitions starting from a given control state $R$ of the CsA $\CS{A}$ are
+%constructed
+%%
+%to update the runtime values of counting sets such that they simulate
+%transitions of the DFA corresponding to the CA $A$.  
+%%
+%Assume a CsA configuration $(R,\smem)$ and a DFA transition
+%$\move{\pstateof{(R,\smem)}}{\alpha}{P}$ from the DFA powerstate encoded by
+%$(R,\smem)$ over an input minterm $\alpha$.
+%%
+%The simulating CsA transition must transform $(R,\smem)$ into $(R',\smem')$ with
+%$\pstateof{(R',\smem')} = P$.
+%%
+%The simulated DFA transition was constructed from $\alpha$-transitions of the
+%NFA $\NFAof{A}$ that are actually instantiations of the CA $\alpha$-transitions
+%enabled in configurations $(r,\mem)\in \pstateof{(R,\smem)}$. 
+%%
+%The simulating CsA transition will be constructed from these CA transitions. 
+%%
+%They can be identified by (1)~their source state, which must be in $R$, (2)~an
+%alphabet minterm $\alpha\in\Sigma$ where $\Sigma$ is the set of minterms over
+%all input predicates in the CA $A$, 
+%and (3)~their compatibility with a particular set
+%of enabled/disabled counter guards.
+%%
+%This set of guards belongs to the set of minterms $\Gamma_{R,\alpha}$ of the set
+%of counter guards on the $\alpha$-transitions originating in $R$:
+%$$\Gamma_{R,\alpha} \defeq \Minterms{\{\guard{\Op[c]}\mid
+%\move{r}{\alpha,f}{s}\in \Delta, r\in R \land c \in \scope(r), \Op[c]\in f\}}.$$
+%%
+%Hence, the CsA will have a transition leaving $R$ for each $\alpha\in \Sigma$
+%and
+%$\beta\in\Gamma_{R,\alpha}$, and the transition will be built from the set of CA
+%$\alpha$-transitions originating in $R$ and \emph{consistent} with $\beta$: 
+%%
+%\begin{equation*} \label{eq:consistent} 
+%\consistent \eqdef \{
+%\move{r}{\alpha,f}{s}\in\Delta\mid r{\in} R, \SAT(\Guard{f}\land \beta) \}.
+%\end{equation*}
+%%
+%Its target is the set $T$ of all target states of the transitions in
+%$\consistent$, and its guard is $\alpha \land \beta$.\footnote{Recall that
+%the predicates in $\PRED_\CC$ and $\PRED_\CCS$ are syntactically the same.}
+%
+%
+%The remaining component is the counting-set operator $\CS{f}$.
+%%
+%It must summarize the updates of the counter values on transitions of
+%$\consistent$ as updates of the respective counting sets. 
+%%
+%The values of counters that are out of scope, hence implicitly zero, will not be
+%tracked in counting sets.
+%%
+%Tracking the value of a counter hence starts when $\CS{A}$ simulates a
+%transition of $A$ entering the scope of the counter, and ends when no state from
+%the scope is present in the target CsA state. 
+%
+%\begin{wrapfigure}[8]{r}{63mm}
+%\begin{minipage}{65mm}
+%  \vspace*{-5.5mm}
+%  \begin{equation*}
+%  \textit{op}(\,\move {p\!}{\alpha,f}{\!q}\,,c) \defeq \hfill
+%  \end{equation*}
+%  \vspace*{-2mm}
+%  \hspace*{-6mm}
+%  \begin{minipage}{67mm}
+%      \begin{equation}
+%  \label{eq:caoptocsa}
+%      \defeq
+%      \left\{ 
+%      \begin{array}{ll}
+%        \NoCSOp 		& \text{if $f(c) = \NoOp \wedge p\in\scope(c)$}\\
+%        \IncrCSOp 		& \text{if $f(c) = \IncrOp \wedge p\in\scope(c)$}\\
+%        \ExitCSOp		& \text{if $f(c) = \NoOp \wedge p\not\in \scope (c)$}\\  
+%        \ExitIncrCSOp	& \text{if $f(c) = \IncrOp \wedge p\not\in\scope(c)$}\\
+%        \ExitCSOp 		& \text{if $f(c) = \ExitOp$}\\
+%        \ExitIncrCSOp	& \text{if $f(c) = \ExitIncrOp$}\\
+%    \end{array}
+%    \right.
+%    \end{equation}
+%  \end{minipage}
+%\end{minipage}
+%\end{wrapfigure}
+%
+%Let $\consistent(c)$ be the set of transitions in $\consistent$ with the target
+%state in the scope of $c$.
+%%
+%The counting-set operator $\CS{f}$ is built in the form
+%$\CS{f}(c)\eqdef\{\textit{op}(\tau,c)\mid \tau\in \consistent(c)\}$.
+%%
+%Here, $\textit{op}(\tau,c)$ denotes the counting-set operation that, given a CA
+%transition $\tau = \move p {\alpha,f} q$, transforms the set of possible values
+%of the counter $c$ at the state $p$ to the set of values obtained at $q$ after
+%taking the transition.
+%%
+%It is defined in \cref{eq:caoptocsa} on the right.
+%%
+%The set operation induced by the CA transition corresponds to the counter
+%operation on the transition. 
+%%
+%In the third and fourth case, when the CA transition comes from out of the
+%scope, it is certain that the counter can only have the value $0$, which is the
+%same value as produced by $\ExitOp$ (or $\ExitIncrOp$ when the counter is
+%immediately incremented).
+%%
+%The resulting CsA transition is therefore $\move S {\alpha\land\beta,\CS{f}} T$.
+%%
+%Note that $\CS{f}(c)$ ends up empty when the target powerstate is fully out of
+%the scope of $c$, which semantically corresponds to the implicit reset to $\{0\}$.
+%
+%Observe that $\CS{A}$ is deterministic
+%since, for any two distinct transitions
+%$\move{S}{\alpha_1,f_1}{S_1}$ and
+%$\move{S}{\alpha_2,f_2}{S_2}$, the condition
+%$\alpha_1\wedge\alpha_2$ is unsatisfiable
+%by virtue of minterms. 
+%
+%\begin{figure}
+%  %\ \\[-10mm]
+%  \vspace{-3mm}
+%  \hspace{-10mm}
+%  \begin{subfigure}[b]{0.24\linewidth}
+%  \begin{center}
+%    \includegraphics[height=4.6cm,keepaspectratio]{figures/detsample_TB.pdf}
+%  \end{center}
+%%  \caption{The CA for \texttt{\DOT*a\DOT{\leftbrace}4,8{\rightbrace}a}}
+%  \label{fig:detsample:CA}
+%  \end{subfigure}
+%  \hspace{2mm}
+%  \begin{subfigure}[b]{0.64\linewidth}
+%  \begin{center}
+%    \includegraphics[height=5.6cm,keepaspectratio]{figures/detsampleCSA_TB.pdf}
+%    %\vspace*{-8mm}
+%  \end{center}
+%  \caption{Determinization of the CA into a {\CSA}}
+%  \label{fig:detsample:CsA}
+%  \end{subfigure}
+%  \caption{From a regex via a CA to a deterministic CsA. 
+%    We are using a notation closely following the formal development. 
+%    We only use $\Op(c)$ instead of $\Op[c]$ and abbreviate  
+%    $\CanExitS c$ by $\xi(c)$ and $\CanIncrS c$ by $\iota(c)$.
+%  }
+%  \label{fig:detsample}
+%  \vspace{-2mm}
+%\end{figure}
+%%
+%
+%\begin{theorem}
+%  For the CA $A$ and the CsA $\CS A$ above, we have $\langof {\CS \aut} \supseteq \langof \aut$ and $|\CS
+%  Q| \leq 2^{|Q|}$.
+%\end{theorem}
+%\begin{proof}[Proof (idea)] 
+%The language inclusion is proved by showing that the configuration automaton $\FA(\CS A)$ of $\CS A$ simulates $\DFAof A$,
+%more concretely, that each configuration $(R,\smem)$ of $\CS A$, a state of $\FA(\CS A)$,
+%simulates the powerstate $(R,\smem)$ of $\DFAof A$.
+%%
+%The bound on the size of the state space follows from that states of the CsA are
+%sets of states of the CA.\end{proof}
+%
+%\begin{ex}\label{ex:det_trans_constr} Consider the {\CA} in
+%\cref{fig:detsample:CA} that has states $q_0$, $q_1$, and $q_2$.
+%%
+%The state $q_0$ is initial, the final condition of $q_2$ is $\top$, and it is
+%$\bot$ for $q_0$ and $q_1$.
+%%
+%The set of counters is $C= \{c\}$ with $\scope(c) = \{q_1\}$ (i.e., $c$ is not
+%used and hence implicitly 0 in $q_0$ and $q_2$).
+%%
+%Finally, $\Sigma = \{\regex{a},\notacl\}$.
+%%
+%In \cref{fig:detsample:CA}, we compactly represent transitions over all minterms
+%from~$\Sigma$ using $\DOT$.
+%%
+%The determinization starts exploring the CsA from its initial state $S_0 =
+%\{q_0\}$. 
+%
+%Let us focus on the transitions for the input minterm $\alpha = \acl$.
+%%
+%Two transitions leaving~$q_0$, namely $\delta_1 =
+%\move{q_0}{\acl,\NoOp[c]}{q_0}$ and $\delta_2 = \move{q_0}{\acl,\NoOp[c]}{q_1}$,
+%both with no guard on~$c$,
+%hence $\Gamma_{S_0,\alpha} = \{\top\}$. 
+%%
+%The guard~$\top$ is thus the only choice for the counter minterm $\beta$.
+%%
+%The set $\consistent$ of transitions consistent with $\alpha$ and $\beta$ then
+%contains both $\acl$-transitions $\delta_1$ and $\delta_2$ originating from $q_0$.
+%%
+%Since $\delta_2$ is entering the scope of $c$, it generates the counting-set
+%operation $\ExitCSOp[c]$ according to the third case of \cref{eq:caoptocsa}.
+%%
+%Since $\delta_1$ stays out of the scope, it does not generate any counting-set
+%operations.
+%%
+%We obtain the counting-set operator \mbox{$\CS{f} = \{\ExitCSOp[c]\}$ and generate the
+%CsA transition $\tau_1 =
+%\move{\{q_0\}}{\acl\land\beta,\{\ExitCSOp[c]\}}{\{q_0,q_1\}}$.}
+%
+%Next, let us focus on the $\acl$-transitions from $S_1 = \{q_0,q_1\}$.
+%Here, $\Gamma_{S_1,\acl}$ has the following three satisfiable elements: $\CanExit{c}\land
+%\CanIncr{c}$,  $\neg\CanExit{c}\land \CanIncr{c}$, and  $\CanExit{c}\land
+%\neg\CanIncr{c}$ (the guard $\neg\CanExit{c}\land \neg\CanIncr{c}$ is excluded as it is
+%never satisfied for non-empty sets of positive integers).  
+%%
+%Let us generate a transition for the second case, $\beta = \neg\CanExit{c}\land
+%\CanIncr{c}$.
+%%
+%We obtain $\Delta_{S_1,\acl,\beta} =
+%\{\move{q_0}{\acl,\NoOp[c]}{q_0}$, $\move{q_0}{\acl,\NoOp[c]}{q_1}$, $\move{q_1}{\acl,\IncrOp[c]}{q_1}\}$. 
+%%
+%As before, the first transition does not contribute to $\CS{f}$ as it stays
+%out of the scope, and the second transition adds $\ExitCSOp[c]$.
+%%
+%The third transition adds $\IncrCSOp[c]$ (the second case of
+%\cref{eq:caoptocsa}).
+%%
+%The resulting CsA transition is thus $\tau_2 =
+%\move{S_1}{\acl\land\neg\CanExit{c}\land \CanIncr{c},\{\IncrCSOp[c],\ExitCSOp[c]\}}{S_1}$.
+%%
+%The rest of the construction is analogous.
+%
+%Last, let us also illustrate the simulation of $\DFAof{A}$ by the constructed
+%CsA transitions.  
+%%
+%On the word $aa$, the DFA would execute the run
+%$\move{\move{\{(q_0,c=0)\}}{\acl}{\{(q_0,c=0),(q_1,c=0)\}}}{\acl}{\{(q_0,c=0),(q_1,c=0),(q_1,c=1)\}}$. 
+%%
+%The simulating run of our CsA would start in the initial configuration
+%$\{\{q_0\},c\in\{0\}\}$.  The transition $\tau_1$ would produce the
+%configuration $\{\{q_0,q_1\},c\in\{0\}\}$ (since $\ExitCSOp(\{0\}) = \{0\}$)
+%from where $\tau_2$ would produce $\{\{q_0,q_1\},c\in\{0,1\}\}$ (since
+%$\IncrCSOp(\{0\}) = \{1\}$ and $\ExitCSOp(\{0\}) = \{0\}$).
+%%
+%The sequence of configurations precisely encodes the sequence of the DFA
+%powerstates, that is, the sequnce
+%%
+%%Indeed, we obtain the sequence of DFA powerstates $\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
+%%Indeed, the sequence of DFA powerstates is $\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
+%$\pstateof{(\{q_0\},c\in\{0\})}  = \{(q_0,c=0)\}$;
+%$\pstateof{(\{q_0,q_1\},c\in\{0\})}  = \{(q_0,c=0),(q_1,c=0)\}$; and
+%$\pstateof{(\{q_0,q_1\},c\in\{0,1\})}  = \{(q_0,c=0),(q_1,c=0),(q_1,c=1)\}$
+%(recall that $q_0$ is not in the scope of $c$ hence $c$ has implicitly the
+%value 0 there).  
+%\end{ex}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2420,10 +2420,20 @@ Static ReDoS generators are based purely on the regex.
 %
 They represent a given regex by e-NFA~\cite{staticAna}.
 %
+They use different techniques - e.g., pumping analysis~\cite{staticAna, staticAna, rxxr2thesis}, 
+%
+transducer analysis~\cite{Satoshi14},
+%
+adversarial automata construction~\cite{rexploiter},
+%
+or NFA ambiguity analysis~\cite{weideman}.
+%
 They can be sound and complete for certain class of regexes,
 however, the major disadvantage of these generators is that 
 often report false positive attacks, or miss ReDoS vulnerability
 of regexes.
+
+%
 
 
 
@@ -2474,7 +2484,7 @@ on the same input string $s$.
 %
 Moreover, there has to be a way of reaching a rejecting state $q_r$ from $q$.
 %
-The results is a string $s = s_0 \dot s_c^k \dot s_1$ with a \emph{attack prefix} $s_0$ given by $labels(\pi_p)$, an \emph{attack suffix} $s_1$ given by $labels(\pi_s)$,
+The result is a string $s = s_{0} \cdot s_{c}^{k} \cdot s_{1}$ with a \emph{attack prefix} $s_0$ given by $labels(\pi_p)$, an \emph{attack suffix} $s_1$ given by $labels(\pi_s)$,
 and \emph{attack core} $s_c$ given by $labels(\pi_1)$, that will be rejected by $A$.
 %
 Clearly, with increasing value of $k$ the running time of the backtracking matching algorithm will double.
@@ -2507,7 +2517,7 @@ a lower bound on the length $k$ of any possible attack string.
 In addition to the analysis, it also inducts sanitization-aware taint analysis at the source code level.
 %
 Even, it could be successful in case of a certain group of regexes,
-it is not able to handle regexes with extended grammars.
+it is not able to handle regexes with extended grammars (except from gready quantifiers $\{m,n\},\{n\}$, or lazy quantifiers $??, +?$).
 
 
 
@@ -2519,7 +2529,9 @@ A tool RXXR2~\cite{rxxr2thesis, rxxr2} creates an e-NFA from a given regex and
 then it search for instances of a pattern
 in the e-NFA using an efficient pattern matching algorithm.
 %
-Similarly to Rexploiter, it is unable to parse extended regexes.
+It is written in OCaml.
+%
+Similarly to Rexploiter, it is unable to parse extended regexes (except from backreferences, non-capturing groups, greedy quantifiers and lazy quantifiers).
 
 \begin{figure}
   %\ \\[-10mm]
@@ -2552,18 +2564,20 @@ to the time or space limits.
 %%%  
 % SlowFuzz
 %%%%
-\emph{
 To the best know tools using dynamic fuzzing belongs
 SlowFuzz~\cite{slowfuzz}.
 %
 The base of the tool is a evolutionary fuzzer ~\cite{libfuzz}
- to search for those inputs that can trigger a
+to search for those inputs that can trigger a
 large number of edges in the control flow graph of the program
 under testing. 
 %
-However,  SlowFuzz has
-no knowledge about regex structures, and this fact can cause some
-deep states of the program unreachable, leading to false negatives.}
+However, SlowFuzz lacks knowledge about regex structures, and this fact can cause some
+deep states of the program unreachable, leading to false negatives.
+%
+It is written in C.
+%
+The SlowFuzz is the most general tool for generating an even texts, since it can handle extended grammar (set operations $[a-z]\&\&[\string^ aeiou]$, lookarounds $(?=), (?<=)$, backreferences $\backslash1$, non-capturing groups $(?:)$, named groups, atomic groups $(?>)$, gready quantifiers $\{m,n\}, \{n\}, \{m,\}$, lazy quantifiers $??, *?, \{\}?$, conditionals $()?, (?(1))$, or possessive quantifiers $?*, *+, \{\}+$).
 
 \emph{
 A tool SDLFuzzer is another dynamic fuzzer for ReDoS detection~\cite{}.
@@ -2583,11 +2597,41 @@ back-references, and lazy or possessive quantifiers.
 %%%  
 % Rescue
 %%%%
-In between these tools, there exist tools that combine both dynamic and static techniques,
-e.g. Rescue~\cite{rescue}, which use that both the static information about the regex
-and the genetic search to guide the subsequent genetic search.
+In between these tools, there exist tools that combine dynamic and static techniques,
+e.g. Rescue~\cite{rescue}. 
+%
+Rescue (written in Java) uses the static information about the regex in a form of extended NFA (e-NFA)
+and a genetic search to guide the subsequent genetic search. 
+%
+Like Slowfuzz, Rescue can handle also extended grammar (except from set operations and conditionals).
 
 
+The aim of this technique is to find an input string that maximizes the
+number of matching steps using regex search profiling data.
+%
+While the classical matching technique keeps an e-NFA state and its corresponding recursion stack,
+%
+for Rescue, it is sufficient to keep track only of an e-NFA states to guide the ReDoS search.
+
+%
+Rescue is based on a three-phase gray-box analytical technique
+which finds for a given regex a timeout-triggering input string:
+%
+\begin{itemize}
+\item In the \emph{seeding phase}, given a regex (and corresponding e-NFA) a genetic (seeding) algorithm searches for a diverse set of strings that cover as many e-NFA states as possible regardless of the search time.
+%
+For each string, a \emph{effective prefix} and redundant suffix is kept to guide the cross-over operation and mutation in the \emph{incubating phase}.
+%
+The effective prefix is a prefix of the string $s$ with a maximal number of characters in $s$ that have been matched and the redundant suffix is the rest of the string $s$.
+
+%
+\item In the \emph{incubating phase}, a genetic algorithm searches for candidates with maximal ratio between the matching steps and their length. The new candidates are created applying mutation and crossing over operations to the seed strings from the seeding phase.
+\item In the \emph{pumping phase}, the best candidate with the highest cost-effective ratio. First, all  ReDoS-irrelevant characters are removed from the selected string. Then, the algorithm searches for a substring such that its pumping increase the number of matching steps the most. Finally, the best substring is pumped as many as possible to create a string of the given length $l$.
+\end{itemize}
+
+\begin{example}
+The default setting of Rescue is that the maximum length of output string $l = 128$. So given a regular expression $(a|aa)^*\$$, Rescue returns a input string $a^{127}|$.
+\end{example}
 
 
 
