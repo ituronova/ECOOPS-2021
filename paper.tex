@@ -2386,15 +2386,15 @@ be several possible next states for each pair of state and input symbol.
 %
 The backtracking algorithm tries all the possible paths until it finds a match.
 
-\begin{figure}
-  %\ \\[-10mm]
-  \vspace{-3mm}
-  \hspace{-10mm}
-  \begin{center}
-    \includegraphics[height=4.6cm,keepaspectratio]{figures/nfaplus.jpg}
-  \end{center}
-  \label{fig:nfaplus}
-\end{figure}
+%\begin{figure}
+%  %\ \\[-10mm]
+%  \vspace{-3mm}
+%  \hspace{-10mm}
+%  \begin{center}
+%    \includegraphics[height=4.6cm,keepaspectratio]{figures/nfaplus.jpg}
+%  \end{center}
+%  \label{fig:nfaplus}
+%\end{figure}
 
 \begin{example}
 To illustrate the vulnerability of the regex matchers based on backtracking algorithm, let's have a regular expression $\textasciicircum(a+)+\$$
@@ -2532,17 +2532,17 @@ in the e-NFA using an efficient pattern matching algorithm.
 It is written in OCaml.
 %
 Similarly to Rexploiter, it is unable to parse extended regexes (except from backreferences, non-capturing groups, greedy quantifiers and lazy quantifiers).
-
-\begin{figure}
-  %\ \\[-10mm]
-  \vspace{-3mm}
-  \hspace{-10mm}
-  \begin{center}
-    \includegraphics[height=2.6cm,keepaspectratio]{figures/rex1.png}
-  \end{center}
-\caption{Left: NFA for $(a|aa)^*\$$; Right: Attack automaton}
-  \label{fig:rex}
-\end{figure}
+%
+%\begin{figure}
+%  %\ \\[-10mm]
+%  \vspace{-3mm}
+%  \hspace{-10mm}
+%  \begin{center}
+%    \includegraphics[height=2.6cm,keepaspectratio]{figures/rex1.png}
+%  \end{center}
+%\caption{Left: NFA for $(a|aa)^*\$$; Right: Attack automaton}
+%  \label{fig:rex}
+%\end{figure}
 
 
 
